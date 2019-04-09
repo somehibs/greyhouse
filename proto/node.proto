@@ -1,0 +1,30 @@
+syntax = "proto3";
+package greyhouse;
+
+// Rooms are the best locations.
+enum Room {
+	UNKNOWN = 0;
+	OUTSIDE = 1;
+	ENTRANCE = 2;
+	LOUNGE = 3;
+	KITCHEN = 4;
+	HALL = 5;
+	BATHROOM = 6;
+	BEDROOM = 7;
+	STUDY = 8;
+	BALCONY = 9;
+	SECOND_BALCONY = 10;
+}
+
+message NodeMetadata {
+	string identifier = 1;
+	Room location = 2;
+}
+
+message NodeKey {
+	string key = 1;
+}
+
+service Node {
+	rpc Register(NodeMetadata) returns (NodeKey) {}
+}
