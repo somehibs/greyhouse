@@ -19,14 +19,9 @@ enum Room {
 // Used to register a node against the paren
 message NodeMetadata {
 	string identifier = 1;
-	Room location = 2;
+	Room room = 2;
 	NodeVersion version = 3;
-}
-
-// Tying two existing messages together since they do different things.
-message NodeRegisterResponse {
-	NodeKey key = 1;
-	NodeVersion version = 2;
+	string clientAddress = 4;
 }
 
 // NodeKey is a wrapper for a string that contains key information.
@@ -45,6 +40,10 @@ message NodeVersion {
 	bool updateNow = 3;
 }
 
-service Node {
-	rpc Register(NodeMetadata) returns (NodeRegisterResponse) {}
+service PrimaryNode {
+	rpc Register(NodeMetadata) returns (NodeKey) {}
+}
+
+service SecondaryNode {
+	rpc Update(NodeVersion) returns (NodeVersion) {}
 }

@@ -4,13 +4,13 @@ import (
 	"log"
 	"net"
 
-	"google.golang.orc/grpc"
+	"google.golang.org/grpc"
 
 	api "git.circuitco.de/self/greyhouse/api"
 	"git.circuitco.de/self/greyhouse/node"
-	"git.circuitco.de/self/greyhouse/server"
+	//"git.circuitco.de/self/greyhouse/server"
 
-	"git.circuitco.de/doras/authserver/interceptor"
+	util "git.circuitco.de/self/grpc-util"
 
 	grpcm "github.com/grpc-ecosystem/go-grpc-middleware"
 )
@@ -23,13 +23,14 @@ func main() {
 		log.Fatalf("Failed to listen to %s because %s", bindAddr, err)
 	}
 
-	log.Info("Starting service.")
+	log.Print("Starting service.")
 	server := grpc.NewServer(
-		grpc.UnaryInterceptor(grpcm.ChainUnaryServer(interceptor.LogInterceptor))
+		grpc.UnaryInterceptor(grpcm.ChainUnaryServer(util.LogInterceptor)),
+		//grpc.UnaryInterceptor(util.LogInterceptor)
 	)
-	nodeService := node.NewServer()
-	api.RegisterNodeServer(server, nodeService)
-	log.Info("Services listening forever.")
+	nodeService := node.NewService()
+	api.RegisterPrimaryNodeServer(server, nodeService)
+	log.Print("Services listening forever.")
 	server.Serve(listen)
 	log.Fatal("Service is going down...")
 }
