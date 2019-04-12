@@ -1,6 +1,0 @@
-INDIR="$GOPATH/src/git.circuitco.de/self/greyhouse/proto"
-OUTDIR="$GOPATH/src/git.circuitco.de/self/greyhouse/api"
-pushd `pwd`
-cd $INDIR
-protoc --go_out=plugins=grpc:$OUTDIR *.proto
-popd

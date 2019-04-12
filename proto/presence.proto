@@ -1,0 +1,29 @@
+syntax = "proto3";
+import "node.proto";
+import "person.proto";
+package greyhouse;
+
+enum PresenceType {
+	// hardware sensors
+	Motion = 0;
+	Pressure = 1;
+	// software/complex protocols
+	Wifi = 10;
+	Bluetooth = 11;
+}
+
+message PresenceUpdate {
+	NodeKey nodeKey = 1;
+	PresenceType type = 2;
+	int64 distance = 3;
+	int64 accuracy = 4;
+	PersonId knownPerson = 5;
+}
+
+message PresenceUpdateReply {
+	int32 throttle = 1;
+}
+
+service Presence {
+	rpc Update(PresenceUpdate) returns (PresenceUpdateReply) {}
+}

@@ -16,15 +16,35 @@ enum Room {
 	SECOND_BALCONY = 10;
 }
 
+// Used to register a node against the paren
 message NodeMetadata {
 	string identifier = 1;
 	Room location = 2;
+	NodeVersion version = 3;
 }
 
+// Tying two existing messages together since they do different things.
+message NodeRegisterResponse {
+	NodeKey key = 1;
+	NodeVersion version = 2;
+}
+
+// NodeKey is a wrapper for a string that contains key information.
 message NodeKey {
+	// This key must be passed back in the context as NodeKey, allowing gRPC to verify the user via middleware wrappers
 	string key = 1;
 }
 
+// Used to report current software version. Might have some minor version numbers in there.
+message NodeVersion {
+	// Simple versioning via a build number
+	int64 buildNumber = 1;
+	// Pretty version string that changes less frequently
+	string version = 2;
+	// Only used by the parent node to tell children to patch themselves
+	bool updateNow = 3;
+}
+
 service Node {
-	rpc Register(NodeMetadata) returns (NodeKey) {}
+	rpc Register(NodeMetadata) returns (NodeRegisterResponse) {}
 }
