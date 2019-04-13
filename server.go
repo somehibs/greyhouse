@@ -8,7 +8,7 @@ import (
 
 	api "git.circuitco.de/self/greyhouse/api"
 	"git.circuitco.de/self/greyhouse/node"
-	//"git.circuitco.de/self/greyhouse/server"
+	"git.circuitco.de/self/greyhouse/house"
 
 	util "git.circuitco.de/self/grpc-util"
 
@@ -28,6 +28,8 @@ func main() {
 		grpc.UnaryInterceptor(grpcm.ChainUnaryServer(util.LogInterceptor)),
 		//grpc.UnaryInterceptor(util.LogInterceptor)
 	)
+	houseService := house.New()
+	log.Printf("Made a house %s", houseService)
 	nodeService := node.NewService()
 	api.RegisterPrimaryNodeServer(server, nodeService)
 	log.Print("Services listening forever.")
