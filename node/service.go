@@ -22,6 +22,8 @@ type NodeService struct {
 	nodes map[string]*Node
 }
 
+var Instance = NodeService{}
+
 func NewService() NodeService {
 	return NodeService{nodes: map[string]*Node{}}
 }

@@ -1,23 +1,29 @@
 syntax = "proto3";
-import "node.proto";
 import "person.proto";
 package greyhouse;
 
+message Location {
+	double latitude = 1;
+	double longitude = 2;
+}
+
 enum PresenceType {
 	// hardware sensors
-	Motion = 0;
-	Pressure = 1;
+	Motion = 0; // when motion starts, send out an event. when motion finishes, send a no people detected event
+	Pressure = 1; // when pressure starts, send out an event. when pressure finishes
 	// software/complex protocols
 	Wifi = 10;
 	Bluetooth = 11;
 }
 
+//Room room = 2; // maybe we'll derive it from the node key
 message PresenceUpdate {
-	NodeKey nodeKey = 1;
+	string sensorId = 1; // combination of node id, presence type and sensor index
 	PresenceType type = 2;
 	int64 distance = 3;
 	int64 accuracy = 4;
-	PersonId knownPerson = 5;
+	int64 peopleDetected = 5; // this is a 'cancel my last presence' update if 0
+	repeated PersonId knownPerson = 6;
 }
 
 message PresenceUpdateReply {

@@ -2,20 +2,13 @@ syntax = "proto3";
 package greyhouse;
 
 message PersonId {
-	int64 id = 1;
+	int32 id = 1;
 }
 
-// only one of these will be used, in order they appear in the struct
-message FindPersonRequest {
-	string username = 1;
-	int64 identifier = 2;
-}
-
-message CreatePersonRequest {
-	string username = 1;
+message FindPerson {
+	string name = 1;
 }
 
 service Person {
-	rpc Create(CreatePersonRequest) returns (PersonId) {}
-	rpc Find(FindPersonRequest) returns (PersonId) {}
+	rpc Find(FindPerson) returns (PersonId) {}
 }

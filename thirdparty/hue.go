@@ -17,11 +17,15 @@ type HueLight struct {
 }
 
 var authorizePhase = true
+var offlineOnly = true
 var hueUser = "greyhouse"
 var hueKey = ""
 
 func NewHueBridge(addr string) HueBridge {
 	bridge := HueBridge{Address: addr, bridge: huego.New(addr, hueKey)}
+	if offlineOnly {
+		return bridge
+	}
 	if len(hueKey) == 0 {
 		discovered, err := huego.Discover()
 		if err != nil {
@@ -56,6 +60,9 @@ func (h HueBridge) getLight(lightName string) *huego.Light {
 }
 
 func (h HueBridge) NewLight(lightName string) (Light) {
+	if offlineOnly {
+		return HueLight{}
+	}
 	return HueLight{h.getLight(lightName)}
 }
 

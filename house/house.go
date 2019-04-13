@@ -1,13 +1,14 @@
 package house
 
 import (
-	//"log"
+	"log"
 
 	"git.circuitco.de/self/greyhouse/thirdparty"
 	api "git.circuitco.de/self/greyhouse/api"
 )
 
 type House struct {
+	rules RuleService
 	Rooms map[api.Room]Room
 }
 
@@ -15,8 +16,9 @@ type Room struct {
 	Lights []thirdparty.Light
 }
 
-func New() House {
-	house := House{Rooms: map[api.Room]Room{}}
+func New(ruleService RuleService) House {
+	log.Print("Starting house...")
+	house := House{Rooms: map[api.Room]Room{}, rules: ruleService}
 	hueBridge := thirdparty.NewHueBridge("192.168.0.17")
 	house.Rooms[api.Room_LOUNGE] = Room{
 		Lights: []thirdparty.Light{

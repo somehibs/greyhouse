@@ -1,0 +1,53 @@
+syntax = "proto3";
+import "node.proto";
+import "person.proto";
+package greyhouse;
+
+message RuleModifier {
+    // Can only apply to one Room at a time.
+    Room room = 1;
+    // Can apply to as many lights as you like. If you change the name, they'll stop working, so, you know. Be aware of that.
+    // If you don't set any lights, it will apply to all lights in a room.
+    repeated string light = 2;
+    // Disable lights. Defaults to leaving them as they are.
+    bool disable = 3;
+    // Set the light brightness
+    int32 brightness = 4;
+    // Set the RGB - if you want multiple RGB for one room, define multiple rule modifiers
+    int32 lightRgb = 5;
+}
+
+// If any of the people are in any of the rooms referenced, this rule applies
+message RuleLocation {
+    repeated Room room = 1;
+    repeated PersonId person = 2;
+}
+
+message Rule {
+    // A name to reference the rule
+    string name = 1;
+    // Optional conditions.
+    RuleLocation room = 2;
+    int64 timeStart = 3;
+    int64 timeEnd = 4;
+    // Side effects.
+    repeated RuleModifier modifiers = 6;
+}
+
+message RuleList {
+    repeated Rule rules = 1;
+}
+
+message RuleFilter {
+    string name = 1;
+    Room room = 2;
+}
+
+message CreateRuleResponse {}
+message DeleteRuleResponse {}
+
+service Rules {
+    rpc Create(Rule) returns (CreateRuleResponse);
+    rpc Delete(Rule) returns (DeleteRuleResponse);
+    rpc List(RuleFilter) returns (RuleList);
+}
