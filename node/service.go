@@ -2,7 +2,6 @@ package node
 
 import (
 	"log"
-	"errors"
 	"time"
 	"math/rand"
 	"golang.org/x/net/context"
@@ -40,7 +39,7 @@ func randomKey(size int) string {
 func (ns NodeService) Register(ctx context.Context, metadata *api.NodeMetadata) (*api.NodeKey, error) {
 	if ns.nodes[metadata.Identifier] != nil {
 		// Already identified, check key. for now just return errors
-		return nil, errors.New("error")
+		return &api.NodeKey{Key: ns.nodes[metadata.Identifier].Key}, nil
 	}
 	ns.nodes[metadata.Identifier] = &Node{
 		Name: metadata.Identifier,

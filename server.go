@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"net"
+	"time"
+	"math/rand"
 
 	"google.golang.org/grpc"
 
@@ -19,6 +21,7 @@ import (
 var bindAddr = "0.0.0.0:9999"
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
 	listen, err := net.Listen("tcp", bindAddr)
 	if err != nil {
 		log.Fatalf("Failed to listen to %s because %s", bindAddr, err)
@@ -29,8 +32,8 @@ func main() {
 		grpc.UnaryInterceptor(grpcm.ChainUnaryServer(util.LogInterceptor, node.NodeInterceptor)),
 		//grpc.UnaryInterceptor(util.LogInterceptor)
 	)
-	node.AllowedMethods["/greymatter/node.Register"] = true
-	
+	node.AllowedMethods["/greyhouse.PrimaryNode/Register"] = true
+
 	rulesService := house.NewRuleService()
 	api.RegisterRulesServer(server, rulesService)
 

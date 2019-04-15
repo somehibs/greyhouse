@@ -32,14 +32,13 @@ func (rs RuleService) Create(ctx context.Context, rule *api.Rule) (*api.CreateRu
 		if rs.appliesTo[modifier.Room] != nil {
 			rs.appliesTo[modifier.Room] = append(rs.appliesTo[modifier.Room], *rule)
 		} else {
-			rs.appliesTo[modifier.Room] = make([]api.Rule, 1)
-			rs.appliesTo[modifier.Room][0] = *rule
+			rs.appliesTo[modifier.Room] = []api.Rule{*rule}
 		}
 	}
 	return &api.CreateRuleResponse{}, nil
 }
 
-func (rs RuleService) Delete(ctx context.Context, toDelete *api.Rule) (*api.CreateRuleResponse, error) {
+func (rs RuleService) Delete(ctx context.Context, toDelete *api.Rule) (*api.DeleteRuleResponse, error) {
 	if rs.rules[toDelete.Name] == nil {
 		return nil, errors.New("not found")
 	}
