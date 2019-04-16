@@ -31,13 +31,12 @@ func (watch GpioWatcher) Init() error {
 	if watch.pin == nil {
 		return errors.New("cannot open pin")
 	}
-	watch.pin.Watch(gpio.EdgeFalling, watch.handleDown)
-	watch.pin.Watch(gpio.EdgeRising, watch.handleUp)
+	watch.pin.Watch(gpio.EdgeBoth, watch.handle)
 	return err
 }
 
-func (watch GpioWatcher) handleUp(pin *gpio.Pin) {
-	log.Printf("Pin high %s", watch.pinId)
+func (watch GpioWatcher) handle(pin *gpio.Pin) {
+	log.Printf("Pin %s is %+v", watch.pinId, pin.Read())
 }
 
 func (watch GpioWatcher) handleDown(pin *gpio.Pin) {

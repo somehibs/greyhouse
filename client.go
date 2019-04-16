@@ -23,13 +23,18 @@ var tickModules = make([]modules.GreyhouseClientModule, 0)
 
 func loadModules() {
 	// At the moment, this is just manual based on configuration that's not written yet
-	loadedModules = append(loadedModules, modules.NewGpioWatcher(2))
+	log.Print("loading modules")
+	loadedModules = append(loadedModules, modules.NewGpioWatcher(22))
 	for _, module := range loadedModules {
-		module.Init()
+		e := module.Init()
+		if e != nil {
+			log.Fatalf("couldnt load module: %+v", e)
+		}
 		if module.CanTick() {
 			tickModules = append(tickModules, module)
 		}
 	}
+	log.Print("modules loaded")
 }
 
 func registered(clientHost modules.ClientHost) {
@@ -52,6 +57,7 @@ func getClients(conn *grpc.ClientConn, nodeClient *api.PrimaryNodeClient, nodeKe
 }
 
 func main() {
+	log.Print("started")
 	loadModules()
 
 	for ;; {
