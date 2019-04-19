@@ -3,6 +3,9 @@ package main
 import (
 	"log"
 	"time"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -14,7 +17,7 @@ import (
 )
 
 var serverAddr = "sloth.local:9999"
-var bindAddr = "0.0.0.0:9991"
+var bindAddr = "0.0.0.0:9991" // not implemented
 var nodeIdentifier = "sloth"
 var nodeRoom = api.Room_KITCHEN
 var thisVersion = version.CurrentVersion()
@@ -24,7 +27,7 @@ var tickModules = make([]modules.GreyhouseClientModule, 0)
 func loadModules() {
 	// At the moment, this is just manual based on configuration that's not written yet
 	log.Print("loading modules")
-	loadedModules = append(loadedModules, modules.NewGpioWatcher(22))
+	loadedModules = append(loadedModules, modules.NewGpioWatcher(23))
 	for _, module := range loadedModules {
 		e := module.Init()
 		if e != nil {
@@ -41,6 +44,36 @@ func registered(clientHost modules.ClientHost) {
 	// refresh the modules
 	for _, module := range loadedModules {
 		module.Update(&clientHost)
+	}
+	// trap signals
+	log.Print("Trapping signals")
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT)
+	go func() {
+		<-signals
+		for _, module := range loadedModules {
+			module.Shutdown()
+		}
+	}()
+	// spin on ticking unless an error comes back about networking
+	tickCount := 0
+	for ;; {
+		for _, module := range tickModules {
+			e := module.Tick()
+			if e != nil {
+				log.Print("FATAL Could not tick module: %+v due to %+v", module, e)
+			}
+		}
+		time.Sleep(1*time.Second)
+		tickCount += 1
+		if tickCount % 10 == 0 {
+			for _, module := range loadedModules {
+				e := module.Tick()
+				if e != nil {
+					log.Print("all modules tick found %+v in %+v", e, module)
+				}
+			}
+		}
 	}
 }
 
@@ -84,7 +117,6 @@ func main() {
 			// Perfect, we connected ok
 			clientHost := getClients(conn, &nodeClient, i.Key)
 			registered(clientHost)
-			time.Sleep(100*time.Second)
 		} else {
 			log.Printf("R: %+v Error: %+v\n", i, e)
 		}

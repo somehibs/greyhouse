@@ -3,11 +3,15 @@ package modules
 import (
 	"log"
 	"errors"
+	"time"
 
 	"github.com/warthog618/gpio"
+
+	"golang.org/x/net/context"
+	api "git.circuitco.de/self/greyhouse/api"
 )
 
-var chost ClientHost
+var chost *ClientHost
 // This module lets you listen to a GPIO pin.
 // Based on type, we'll report to the right API.
 // For now, the only thing that raises and lowers GPIO is the PIR sensors.
@@ -35,16 +39,39 @@ func (watch GpioWatcher) Init() error {
 	return err
 }
 
-func (watch GpioWatcher) handle(pin *gpio.Pin) {
-	log.Printf("Pin %s is %+v", watch.pinId, pin.Read())
+func (watch GpioWatcher) Shutdown() {
+	log.Printf("gpio watcher shutting down for pin %d", watch.pinId)
+	watch.pin.Unwatch()
 }
 
-func (watch GpioWatcher) handleDown(pin *gpio.Pin) {
-	log.Printf("Pin low %s", watch.pinId)
+func (watch GpioWatcher) handle(pin *gpio.Pin) {
+	if chost == nil {
+		log.Print("Cannot report pin change to empty chost")
+		return
+	}
+	ctx, _ := context.WithTimeout(context.Background(), 9*time.Second)
+	pinState := pin.Read()
+	peopleDetected := 0
+	if pinState {
+		peopleDetected += 1
+	}
+	log.Printf("Pin %s is %+v", watch.pinId, pinState)
+	// Tell someone the pin changed
+	update := api.PresenceUpdate {
+		SensorId: "idfk",
+		Type: api.PresenceType_Motion,
+		Distance: 0,
+		Accuracy: 0,
+		PeopleDetected: int64(peopleDetected),
+	}
+	(*chost.Presence).Update(ctx, &update)
 }
 
 func (watch GpioWatcher) Update(ch *ClientHost) {
+	chost = ch
 }
 
 func (watch GpioWatcher) CanTick() bool { return false }
-func (watch GpioWatcher) Tick() error { return nil }
+func (watch GpioWatcher) Tick() error {
+	return nil
+}

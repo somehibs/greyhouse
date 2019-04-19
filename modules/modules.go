@@ -23,5 +23,8 @@ type GreyhouseClientModule interface {
 	// Called once to find out if this module needs per-second processing
 	CanTick() bool
 	// Called once per second if canTick returns true
+	// otherwise, called once every 10 ticks to ensure networking still OK
 	Tick() error
+	// Shutdown is called when the application is closing for some reason
+	Shutdown()
 }
