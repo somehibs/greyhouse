@@ -3,11 +3,9 @@ package modules
 import (
 	"log"
 	"errors"
-	"time"
 
 	"github.com/warthog618/gpio"
 
-	"golang.org/x/net/context"
 	api "git.circuitco.de/self/greyhouse/api"
 )
 
@@ -49,7 +47,7 @@ func (watch GpioWatcher) handle(pin *gpio.Pin) {
 		log.Print("Cannot report pin change to empty chost")
 		return
 	}
-	ctx, _ := context.WithTimeout(context.Background(), 9*time.Second)
+	ctx := (*chost).GetContext()
 	pinState := pin.Read()
 	peopleDetected := 0
 	if pinState {

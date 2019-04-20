@@ -78,7 +78,7 @@ func registered(clientHost modules.ClientHost) {
 }
 
 func getClients(conn *grpc.ClientConn, nodeClient *api.PrimaryNodeClient, nodeKey string) modules.ClientHost {
-	ch := modules.ClientHost{Node: nodeClient}
+	ch := modules.ClientHost{Node: nodeClient, Key: nodeKey}
 	pr := api.NewPresenceClient(conn)
 	// golang, because we've still got the same constructs as c and can't take the addr of a return value
 	ch.Presence = &pr

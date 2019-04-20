@@ -17,13 +17,13 @@ type HueLight struct {
 }
 
 var authorizePhase = true
-var offlineOnly = true
+var disable = false
 var hueUser = "greyhouse"
 var hueKey = ""
 
 func NewHueBridge(addr string) HueBridge {
 	bridge := HueBridge{Address: addr, bridge: huego.New(addr, hueKey)}
-	if offlineOnly {
+	if disable {
 		return bridge
 	}
 	if len(hueKey) == 0 {
@@ -48,11 +48,7 @@ func (h HueBridge) getLight(lightName string) *huego.Light {
 	}
 	for ind, light := range lights {
 		if strings.Compare(light.Name, lightName) == 0 {
-			l, e := h.bridge.GetLight(ind)
-			if e != nil {
-				log.Fatalf("Couldn't fetch light from bridge: %s", e.Error())
-			}
-			return l
+			return &light
 		}
 	}
 	log.Fatalf("Failed to find light %s", lightName)
@@ -60,7 +56,7 @@ func (h HueBridge) getLight(lightName string) *huego.Light {
 }
 
 func (h HueBridge) NewLight(lightName string) (Light) {
-	if offlineOnly {
+	if disable {
 		return HueLight{}
 	}
 	return HueLight{h.getLight(lightName)}

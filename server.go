@@ -29,10 +29,10 @@ func main() {
 
 	log.Print("Starting service.")
 	server := grpc.NewServer(
-		grpc.UnaryInterceptor(grpcm.ChainUnaryServer(util.LogInterceptor, node.NodeInterceptor)),
+		grpc.UnaryInterceptor(grpcm.ChainUnaryServer(util.LogInterceptor, util.AuthenticationInterceptor)),
 		//grpc.UnaryInterceptor(util.LogInterceptor)
 	)
-	node.AllowedMethods["/greyhouse.PrimaryNode/Register"] = true
+	util.NoAuthMethods["/greyhouse.PrimaryNode/Register"] = true
 
 	rulesService := house.NewRuleService()
 	api.RegisterRulesServer(server, rulesService)
@@ -41,6 +41,7 @@ func main() {
 	log.Printf("Made a house %s", houseService)
 
 	nodeService := node.NewService()
+	util.AuthChecker = nodeService
 	api.RegisterPrimaryNodeServer(server, nodeService)
 
 	personService := presence.NewPersonService()
@@ -49,7 +50,10 @@ func main() {
 	presenceService := presence.NewService()
 	api.RegisterPresenceServer(server, presenceService)
 
-	log.Print("Services listening forever.")
+	log.Print("Starting house tick thread.")
+	houseService.StartTicking()
+
+	log.Print("Services listening now.")
 	server.Serve(listen)
 	log.Fatal("Service is going down...")
 }

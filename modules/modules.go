@@ -1,14 +1,23 @@
 package modules
 
 import (
+	"time"
+	"golang.org/x/net/context"
 	api "git.circuitco.de/self/greyhouse/api"
+	"git.circuitco.de/self/greyhouse/node"
 )
 
 type ClientHost struct {
+	Key string
 	Node *api.PrimaryNodeClient
 	Presence *api.PresenceClient
 	Person *api.PersonClient
 	Rules *api.RulesClient
+}
+
+func (c ClientHost) GetContext() context.Context {
+	ctx, _ := context.WithTimeout(context.Background(), 9*time.Second)
+	return node.AuthContext(ctx, c.Key)
 }
 
 type GreyhouseClientModule interface {

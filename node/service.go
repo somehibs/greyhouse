@@ -4,7 +4,10 @@ import (
 	"log"
 	"time"
 	"math/rand"
+	"errors"
+	"strings"
 	"golang.org/x/net/context"
+	"google.golang.org/grpc/metadata"
 
 	api "git.circuitco.de/self/greyhouse/api"
 )
@@ -20,8 +23,6 @@ type Node struct {
 type NodeService struct {
 	nodes map[string]*Node
 }
-
-var Instance = NodeService{}
 
 func NewService() NodeService {
 	return NodeService{nodes: map[string]*Node{}}
@@ -51,4 +52,24 @@ func (ns NodeService) Register(ctx context.Context, metadata *api.NodeMetadata) 
 	log.Printf("Register called: %+v\n", metadata)
 	log.Printf("Stored: %+v\n", ns.nodes[metadata.Identifier])
 	return &api.NodeKey{Key: ns.nodes[metadata.Identifier].Key}, nil
+}
+
+func AuthContext(ctx context.Context, key string) context.Context {
+	return metadata.NewOutgoingContext(ctx, metadata.New(map[string]string{"node_key": key}))
+}
+
+func (ns NodeService) Check(addr string, metadata map[string][]string) error {
+	if metadata["node_key"] == nil {
+		return errors.New("authentication failed")
+	}
+	ok := false
+	for k := range ns.nodes {
+		if strings.Compare(ns.nodes[k].Key, metadata["node_key"][0]) == 0 {
+			ok = true
+		}
+	}
+	if ok == false {
+		return errors.New("authentication failed")
+	}
+	return nil
 }

@@ -2,6 +2,7 @@ package house
 
 import (
 	"log"
+	"time"
 
 	"git.circuitco.de/self/greyhouse/thirdparty"
 	api "git.circuitco.de/self/greyhouse/api"
@@ -37,4 +38,17 @@ func New(ruleService RuleService) House {
 //		},
 	}
 	return house
+}
+
+func (h House) StartTicking() {
+	go func() {
+		for ;; {
+			h.Tick()
+			time.Sleep(1*time.Second)
+		}
+	}()
+}
+
+func (h House) Tick() {
+	log.Print("Tick.")
 }

@@ -9,12 +9,10 @@ message RuleModifier {
     // Can apply to as many lights as you like. If you change the name, they'll stop working, so, you know. Be aware of that.
     // If you don't set any lights, it will apply to all lights in a room.
     repeated string light = 2;
-    // Disable lights. Defaults to leaving them as they are.
+    // Disable lights. If this is false, lights will not be modified.
     bool disable = 3;
-    // Set the light brightness
+    // Force the light brightness
     int32 brightness = 4;
-    // Set the RGB - if you want multiple RGB for one room, define multiple rule modifiers
-    int32 lightRgb = 5;
 }
 
 // If any of the people are in any of the rooms referenced, this rule applies
