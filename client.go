@@ -27,7 +27,8 @@ var tickModules = make([]modules.GreyhouseClientModule, 0)
 func loadModules() {
 	// At the moment, this is just manual based on configuration that's not written yet
 	log.Print("loading modules")
-	loadedModules = append(loadedModules, modules.NewGpioWatcher(23))
+	gpioWatcher := modules.NewGpioWatcher(23)
+	loadedModules = append(loadedModules, &gpioWatcher)
 	for _, module := range loadedModules {
 		e := module.Init()
 		if e != nil {
@@ -54,6 +55,7 @@ func registered(clientHost modules.ClientHost) {
 		for _, module := range loadedModules {
 			module.Shutdown()
 		}
+		panic("Interrupted.")
 	}()
 	// spin on ticking unless an error comes back about networking
 	tickCount := 0

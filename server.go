@@ -44,7 +44,7 @@ func main() {
 	personService := presence.NewPersonService()
 	api.RegisterPersonServer(server, personService)
 
-	presenceService := presence.NewService()
+	presenceService := presence.NewService(&nodeService)
 	api.RegisterPresenceServer(server, presenceService)
 
 	houseService := house.New(&rulesService, &presenceService)

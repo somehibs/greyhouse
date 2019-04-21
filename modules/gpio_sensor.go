@@ -24,7 +24,7 @@ func NewGpioWatcher(pin int16) GpioWatcher {
 	return GpioWatcher{pin, nil, true, true}
 }
 
-func (watch GpioWatcher) Init() error {
+func (watch *GpioWatcher) Init() error {
 	err := gpio.Open()
 	if err != nil {
 		return err
@@ -33,16 +33,16 @@ func (watch GpioWatcher) Init() error {
 	if watch.pin == nil {
 		return errors.New("cannot open pin")
 	}
-	watch.pin.Watch(gpio.EdgeBoth, watch.handle)
+	err = watch.pin.Watch(gpio.EdgeBoth, watch.handle)
 	return err
 }
 
-func (watch GpioWatcher) Shutdown() {
+func (watch *GpioWatcher) Shutdown() {
 	log.Printf("gpio watcher shutting down for pin %d", watch.pinId)
 	watch.pin.Unwatch()
 }
 
-func (watch GpioWatcher) handle(pin *gpio.Pin) {
+func (watch *GpioWatcher) handle(pin *gpio.Pin) {
 	if chost == nil {
 		log.Print("Cannot report pin change to empty chost")
 		return
@@ -65,11 +65,11 @@ func (watch GpioWatcher) handle(pin *gpio.Pin) {
 	(*chost.Presence).Update(ctx, &update)
 }
 
-func (watch GpioWatcher) Update(ch *ClientHost) {
+func (watch *GpioWatcher) Update(ch *ClientHost) {
 	chost = ch
 }
 
-func (watch GpioWatcher) CanTick() bool { return false }
-func (watch GpioWatcher) Tick() error {
+func (watch *GpioWatcher) CanTick() bool { return false }
+func (watch *GpioWatcher) Tick() error {
 	return nil
 }

@@ -19,3 +19,7 @@ func Warn(v ...interface{}) {
 func Warnf(format string, v ...interface{}) {
 	Printf(format, v...)
 }
+
+func Debugf(format string, v ...interface{}) {
+	Printf(format, v...)
+}

@@ -62,3 +62,9 @@ func (h House) Tick() {
 
 func (h House) TickMinute() {
 }
+
+func (h House) PersonLocationUpdate(personId int64) {
+}
+
+func (h House) RoomPresenceChange(room api.Room, present int32) {
+}
