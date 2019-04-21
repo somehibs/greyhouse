@@ -2,6 +2,7 @@ package thirdparty
 
 import (
 	"time"
+	"git.circuitco.de/self/greyhouse/log"
 	api "git.circuitco.de/self/greyhouse/api"
 )
 
@@ -14,9 +15,14 @@ type GoogleMapsLocationSharing struct {
 func NewGoogleMapsLocationSharing() GoogleMapsLocationSharing {
 	gmls := GoogleMapsLocationSharing{
 		map[string][]string{},
-		map[PersonId]api.Location,
+		nil,
+		map[PersonId]api.Location{},
 	}
 	return gmls
+}
+
+func (gmls *GoogleMapsLocationSharing) CacheOk() bool {
+	return false
 }
 
 func (gmls *GoogleMapsLocationSharing) GetLocations() map[PersonId]api.Location {
@@ -31,5 +37,5 @@ func (gmls *GoogleMapsLocationSharing) GetLocations() map[PersonId]api.Location 
 }
 
 func (gmls *GoogleMapsLocationSharing) refresh() error {
-	// ok
+	return nil
 }

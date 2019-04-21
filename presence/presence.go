@@ -1,7 +1,6 @@
 package presence
 
 import (
-	"time"
 	"log"
 
 	"golang.org/x/net/context"
@@ -9,15 +8,6 @@ import (
 	api "git.circuitco.de/self/greyhouse/api"
 	"git.circuitco.de/self/greyhouse/node"
 )
-
-type PresenceEvent struct {
-	sensor string
-	presenceType api.PresenceType
-	peopleDetected int32
-	knownPeopleDetected []*Person
-	lastSeen time.Time
-	room api.Room
-}
 
 type PresenceCallback interface {
 	// The user's location can be accurately judged, so we're giving you an update.
@@ -31,32 +21,30 @@ type PresenceCallback interface {
 
 type PresenceService struct {
 	nodes *node.NodeService
-	motionPresence map[api.Room]PresenceEvent
+	motionPresence map[api.Room][]api.PresenceUpdate
 
 	// Presences based on phones. WiFi, GPS and other services might be utilised.
-	phonePresence []PresenceEvent
+	phonePresence []api.PresenceUpdate
 }
 
 func NewService(nodeService *node.NodeService) PresenceService {
 	log.Print("Starting presence service...")
 	presence := PresenceService{
 		nodeService,
-		map[api.Room]PresenceEvent{},
-		make([]PresenceEvent, 0),
+		map[api.Room][]api.PresenceUpdate{},
+		make([]api.PresenceUpdate, 0),
 	}
 	return presence
 }
 
 func (ps PresenceService) Update(ctx context.Context, update *api.PresenceUpdate) (*api.PresenceUpdateReply, error) {
-	node := nodes.GetNode(ctx)
+	unode := ps.nodes.GetNode(ctx)
+	reply := &api.PresenceUpdateReply{Throttle: 0}
 	switch update.Type {
 		case api.PresenceType_Motion:
-			ps.motionPresence[node.Room] = append(ps.motionPresence[node.Room], update)
+			ps.motionPresence[unode.Room] = append(ps.motionPresence[unode.Room], *update)
 			log.Printf("Motions recorded: %+v", len(ps.motionPresence))
-	}
-	reply := &api.PresenceUpdateReply{Throttle: 0}
-	if presenceUpdate.Type == api.PresenceType_Motion {
-		reply.Throttle = 15
+			reply.Throttle = 15
 	}
 	return reply, nil
 }

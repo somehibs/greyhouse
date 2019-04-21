@@ -9,8 +9,8 @@ message Location {
 
 enum PresenceType {
 	// hardware sensors
-	Motion = 0; // when motion starts, send out an event. when motion finishes, send a no people detected event
-	Pressure = 1; // when pressure starts, send out an event. when pressure finishes
+	Motion = 0; // when motion starts, send out an event. when motion finishes, send a no people detected event.
+	Pressure = 1; // when pressure starts, send out an event. when pressure finishes, send another.
 	// software/complex protocols
 	Wifi = 10;
 	Bluetooth = 11;
@@ -20,10 +20,11 @@ enum PresenceType {
 message PresenceUpdate {
 	string sensorId = 1; // combination of node id, presence type and sensor index
 	PresenceType type = 2;
-	int64 distance = 3;
-	int64 accuracy = 4;
-	int64 peopleDetected = 5; // this is a 'cancel my last presence' update if 0
-	repeated PersonId knownPerson = 6;
+	int64 time = 3;
+	int64 distance = 4;
+	int64 accuracy = 5;
+	int64 peopleDetected = 6; // some senors will update with 0 to indicate absense
+	repeated PersonId knownPerson = 7;
 }
 
 message PresenceUpdateReply {

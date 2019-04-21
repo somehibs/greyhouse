@@ -58,5 +58,7 @@ func (h House) StartTicking() {
 }
 
 func (h House) Tick() {
-	// We have advanced a second.
+}
+
+func (h House) TickMinute() {
 }
