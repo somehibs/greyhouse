@@ -43,11 +43,6 @@ func (watch *GpioWatcher) Shutdown() {
 }
 
 func (watch *GpioWatcher) handle(pin *gpio.Pin) {
-	if chost == nil {
-		log.Print("Cannot report pin change to empty chost")
-		return
-	}
-	ctx := (*chost).GetContext()
 	pinState := pin.Read()
 	peopleDetected := 0
 	if pinState {
@@ -55,18 +50,32 @@ func (watch *GpioWatcher) handle(pin *gpio.Pin) {
 	}
 	log.Printf("Pin %s is %+v", watch.pinId, pinState)
 	// Tell someone the pin changed
+	watch.writeUpdate(pin.Read())
+}
+
+func (watch *GpioWatcher) writeUpdate(pinState gpio.Level) {
+	if chost == nil {
+		log.Print("Cannot report pin change to empty chost")
+		return
+	}
+	ctx := (*chost).GetContext()
+	peopleDetected := 0
+	if pinState {
+		peopleDetected = 1
+	}
 	update := api.PresenceUpdate {
 		SensorId: "idfk",
 		Type: api.PresenceType_Motion,
 		Distance: 0,
 		Accuracy: 0,
-		PeopleDetected: int64(peopleDetected),
+		PeopleDetected: int32(peopleDetected),
 	}
 	(*chost.Presence).Update(ctx, &update)
 }
 
 func (watch *GpioWatcher) Update(ch *ClientHost) {
 	chost = ch
+	watch.writeUpdate(watch.pin.Read())
 }
 
 func (watch *GpioWatcher) CanTick() bool { return false }

@@ -1,7 +1,7 @@
 package house
 
 import (
-	"log"
+	"git.circuitco.de/self/greyhouse/log"
 	"time"
 
 	"git.circuitco.de/self/greyhouse/thirdparty"
@@ -22,6 +22,7 @@ type Room struct {
 func New(ruleService *RuleService, presenceService *presence.PresenceService) House {
 	log.Print("Starting house...")
 	house := House{Rooms: map[api.Room]Room{}, rules: ruleService, presence: presenceService}
+	presenceService.AddCallback(house)
 	hueBridge := thirdparty.NewHueBridge("192.168.0.17")
 	house.Rooms[api.Room_LOUNGE] = Room{
 		Lights: []thirdparty.Light{
@@ -67,4 +68,13 @@ func (h House) PersonLocationUpdate(personId int64) {
 }
 
 func (h House) RoomPresenceChange(room api.Room, present int32) {
+	if present > 0 {
+		// turn on the lights
+		log.Printf("Turning on %d lights in %+v", len(h.Rooms[room].Lights), room)
+		for _, light := range h.Rooms[room].Lights {
+			light.On()
+		}
+	} else {
+		// ignore leaving rooms for now
+	}
 }

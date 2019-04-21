@@ -19,7 +19,7 @@ import (
 var serverAddr = "sloth.local:9999"
 var bindAddr = "0.0.0.0:9991" // not implemented
 var nodeIdentifier = "sloth"
-var nodeRoom = api.Room_KITCHEN
+var nodeRoom = api.Room_LOUNGE
 var thisVersion = version.CurrentVersion()
 var loadedModules = make([]modules.GreyhouseClientModule, 0)
 var tickModules = make([]modules.GreyhouseClientModule, 0)
@@ -38,14 +38,11 @@ func loadModules() {
 			tickModules = append(tickModules, module)
 		}
 	}
+	shutdownSignal()
 	log.Print("modules loaded")
 }
 
-func registered(clientHost modules.ClientHost) {
-	// refresh the modules
-	for _, module := range loadedModules {
-		module.Update(&clientHost)
-	}
+func shutdownSignal() {
 	// trap signals
 	log.Print("Trapping signals")
 	signals := make(chan os.Signal, 1)
@@ -57,6 +54,13 @@ func registered(clientHost modules.ClientHost) {
 		}
 		panic("Interrupted.")
 	}()
+}
+
+func registered(clientHost modules.ClientHost) {
+	// refresh the modules
+	for _, module := range loadedModules {
+		module.Update(&clientHost)
+	}
 	// spin on ticking unless an error comes back about networking
 	tickCount := 0
 	for ;; {

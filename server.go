@@ -45,7 +45,7 @@ func main() {
 	api.RegisterPersonServer(server, personService)
 
 	presenceService := presence.NewService(&nodeService)
-	api.RegisterPresenceServer(server, presenceService)
+	api.RegisterPresenceServer(server, &presenceService)
 
 	houseService := house.New(&rulesService, &presenceService)
 	log.Printf("Made a house %s", houseService)

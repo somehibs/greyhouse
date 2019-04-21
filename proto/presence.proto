@@ -23,7 +23,7 @@ message PresenceUpdate {
 	int64 time = 3;
 	int64 distance = 4;
 	int64 accuracy = 5;
-	int64 peopleDetected = 6; // some senors will update with 0 to indicate absense
+	int32 peopleDetected = 6; // some senors will update with 0 to indicate absense
 	repeated PersonId knownPerson = 7;
 }
 

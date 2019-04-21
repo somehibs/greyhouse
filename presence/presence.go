@@ -31,6 +31,8 @@ type PresenceService struct {
 	// Presences based on phones. WiFi, GPS and other services might be utilised.
 	// Sometimes very accurate, sometimes useless.
 	phonePresence []PresenceEvent
+
+	callbacks []PresenceCallback
 }
 
 func NewService(nodeService *node.NodeService) PresenceService {
@@ -39,18 +41,37 @@ func NewService(nodeService *node.NodeService) PresenceService {
 		nodeService,
 		map[api.Room][]PresenceEvent{},
 		make([]PresenceEvent, 0),
+		make([]PresenceCallback, 0),
 	}
 	return presence
 }
 
-func (ps PresenceService) Update(ctx context.Context, update *api.PresenceUpdate) (*api.PresenceUpdateReply, error) {
+func (ps *PresenceService) AddCallback(callback PresenceCallback) {
+	ps.callbacks = append(ps.callbacks, callback)
+	log.Debugf("callback for presence added? %d", len(ps.callbacks))
+}
+
+func (ps *PresenceService) RemoveCallback(removalCallback PresenceCallback) {
+	for ind, callback := range ps.callbacks {
+		if callback == removalCallback {
+			ps.callbacks = append(ps.callbacks[:ind], ps.callbacks[:ind+1]...)
+		}
+	}
+	log.Debugf("callback for presence removed? %d", len(ps.callbacks))
+}
+
+func (ps *PresenceService) Update(ctx context.Context, update *api.PresenceUpdate) (*api.PresenceUpdateReply, error) {
 	unode := ps.nodes.GetNode(ctx)
 	reply := &api.PresenceUpdateReply{Throttle: 0}
 	event := PresenceEvent {
 		*update,
 		unode,
 	}
-	log.Debugf("New motion: %+v", event)
+	log.Debugf("New motion: %+v from node %+v", update.PeopleDetected, unode.Name)
+	log.Debugf("callback for presences? %d", len(ps.callbacks))
+	for _, callback := range ps.callbacks {
+		callback.RoomPresenceChange(unode.Room, update.PeopleDetected)
+	}
 	switch update.Type {
 		case api.PresenceType_Motion:
 			ps.motionPresence[unode.Room] = append(ps.motionPresence[unode.Room], event)
