@@ -37,9 +37,6 @@ func main() {
 	rulesService := house.NewRuleService()
 	api.RegisterRulesServer(server, rulesService)
 
-	houseService := house.New(rulesService)
-	log.Printf("Made a house %s", houseService)
-
 	nodeService := node.NewService()
 	util.AuthChecker = nodeService
 	api.RegisterPrimaryNodeServer(server, nodeService)
@@ -49,6 +46,9 @@ func main() {
 
 	presenceService := presence.NewService()
 	api.RegisterPresenceServer(server, presenceService)
+
+	houseService := house.New(&rulesService, &presenceService)
+	log.Printf("Made a house %s", houseService)
 
 	log.Print("Starting house tick thread.")
 	houseService.StartTicking()

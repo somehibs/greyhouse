@@ -5,11 +5,13 @@ import (
 	"time"
 
 	"git.circuitco.de/self/greyhouse/thirdparty"
+	"git.circuitco.de/self/greyhouse/presence"
 	api "git.circuitco.de/self/greyhouse/api"
 )
 
 type House struct {
-	rules RuleService
+	presence *presence.PresenceService
+	rules *RuleService
 	Rooms map[api.Room]Room
 }
 
@@ -17,9 +19,9 @@ type Room struct {
 	Lights []thirdparty.Light
 }
 
-func New(ruleService RuleService) House {
+func New(ruleService *RuleService, presenceService *presence.PresenceService) House {
 	log.Print("Starting house...")
-	house := House{Rooms: map[api.Room]Room{}, rules: ruleService}
+	house := House{Rooms: map[api.Room]Room{}, rules: ruleService, presence: presenceService}
 	hueBridge := thirdparty.NewHueBridge("192.168.0.17")
 	house.Rooms[api.Room_LOUNGE] = Room{
 		Lights: []thirdparty.Light{
@@ -42,13 +44,19 @@ func New(ruleService RuleService) House {
 
 func (h House) StartTicking() {
 	go func() {
+		var i = int64(0)
 		for ;; {
+			if i % 60 == 0 {
+				// Approximately 1m
+				h.TickMinute()
+			}
 			h.Tick()
+			i += 1
 			time.Sleep(1*time.Second)
 		}
 	}()
 }
 
 func (h House) Tick() {
-	log.Print("Tick.")
+	// We have advanced a second.
 }

@@ -46,7 +46,7 @@ func (h HueBridge) getLight(lightName string) *huego.Light {
 	if e != nil {
 		log.Fatalf("Couldn't fetch lights from bridge: %s", e.Error())
 	}
-	for ind, light := range lights {
+	for _, light := range lights {
 		if strings.Compare(light.Name, lightName) == 0 {
 			return &light
 		}

@@ -7,6 +7,7 @@ import (
 	"golang.org/x/net/context"
 
 	api "git.circuitco.de/self/greyhouse/api"
+	"git.circuitco.de/self/greyhouse/node"
 )
 
 type PresenceEvent struct {
@@ -29,21 +30,30 @@ type PresenceCallback interface {
 }
 
 type PresenceService struct {
-	presences []PresenceEvent
-	// Accepts data from Presence modules.
-	// Presence modules should do their best to provide as much useful data about what presence they detect.
-	// Consider wide angle lens Pi cameras to detect motion
-	// Some of the modules aren't associated with any room, but can help to indicate a room's presence (e.g. wifi indicator)
+	nodes *node.NodeService
+	motionPresence map[api.Room]PresenceEvent
+
+	// Presences based on phones. WiFi, GPS and other services might be utilised.
+	phonePresence []PresenceEvent
 }
 
-func NewService() PresenceService {
+func NewService(nodeService *node.NodeService) PresenceService {
 	log.Print("Starting presence service...")
-	presence := PresenceService{make([]PresenceEvent, 0)}
+	presence := PresenceService{
+		nodeService,
+		map[api.Room]PresenceEvent{},
+		make([]PresenceEvent, 0),
+	}
 	return presence
 }
 
-func (ps PresenceService) Update(ctx context.Context, presenceUpdate *api.PresenceUpdate) (*api.PresenceUpdateReply, error) {
-	//ps.presences = append(ps.presences, presenceUpdate)
+func (ps PresenceService) Update(ctx context.Context, update *api.PresenceUpdate) (*api.PresenceUpdateReply, error) {
+	node := nodes.GetNode(ctx)
+	switch update.Type {
+		case api.PresenceType_Motion:
+			ps.motionPresence[node.Room] = append(ps.motionPresence[node.Room], update)
+			log.Printf("Motions recorded: %+v", len(ps.motionPresence))
+	}
 	reply := &api.PresenceUpdateReply{Throttle: 0}
 	if presenceUpdate.Type == api.PresenceType_Motion {
 		reply.Throttle = 15

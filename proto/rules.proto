@@ -16,6 +16,8 @@ message RuleModifier {
 }
 
 // If any of the people are in any of the rooms referenced, this rule applies
+// If the room is set, this rule applies
+// If the rule location isn't set, this rule applies to the entire house, always.
 message RuleLocation {
     repeated Room room = 1;
     repeated PersonId person = 2;

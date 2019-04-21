@@ -58,17 +58,25 @@ func AuthContext(ctx context.Context, key string) context.Context {
 	return metadata.NewOutgoingContext(ctx, metadata.New(map[string]string{"node_key": key}))
 }
 
-func (ns NodeService) Check(addr string, metadata map[string][]string) error {
-	if metadata["node_key"] == nil {
-		return errors.New("authentication failed")
-	}
-	ok := false
+func (ns NodeService) GetNode(ctx context.Context) *api.Node {
+	data, _ := metadata.FromIncomingContext(ctx)
+	return ns.getNodeInternal(data)
+}
+
+func (ns NodeService) getNodeInternal(metadata map[string][]string) *api.Node {
 	for k := range ns.nodes {
 		if strings.Compare(ns.nodes[k].Key, metadata["node_key"][0]) == 0 {
 			ok = true
 		}
 	}
-	if ok == false {
+}
+
+func (ns NodeService) Check(addr string, metadata map[string][]string) error {
+	if metadata["node_key"] == nil {
+		return errors.New("authentication failed")
+	}
+	ok := false
+	if ns.getNodeInternal(metadata) == nil {
 		return errors.New("authentication failed")
 	}
 	return nil
