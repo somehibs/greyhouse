@@ -7,3 +7,5 @@ type Light interface {
 	Brightness(int32) error
 	Flash() error
 }
+
+type PersonId int64
