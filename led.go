@@ -1,14 +1,14 @@
 package main
 
 import (
+	"os"
 	"log"
-	"strings"
 
 	"git.circuitco.de/self/greyhouse/thirdparty"
 )
 
 func main() {
-	log.Print("Hello world.")
+	log.Print("test")
 	keys := map[string]string {
 		"on": "0000000011111111101100000100111111",
 		"off": "00000000111111111111100000000111",
@@ -36,11 +36,12 @@ func main() {
 		"flash": "0000000011111111101100100100110111",
 	}
 	blaster := thirdparty.NewIrBlaster(uint32(17), keys)
-	for k := range keys {
-		if strings.Compare(k, "off") == 0{
-			continue
-		}
-		blaster.SendKey(k)
+	if len(os.Args) > 1 {
+		blaster.SendKey(os.Args[1])
+	} else {
+		blaster.SendKey("on")
+		blaster.SendKey("strobe")
+		blaster.SendKey("white")
 	}
-	log.Print("Blasted")
+	log.Print("finished")
 }
