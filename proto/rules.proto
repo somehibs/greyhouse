@@ -28,6 +28,7 @@ message Rule {
     string name = 1;
     // Optional conditions.
     RuleLocation room = 2;
+    // s since start of day
     int64 timeStart = 3;
     int64 timeEnd = 4;
     // Side effects.

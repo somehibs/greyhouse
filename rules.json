@@ -1,0 +1,13 @@
+{
+	"daylight_hours":
+		{
+			"name": "morning_hours",
+			"timeStart": 0,
+			"timeEnd": 32400,
+			"modifiers": [
+				{
+					
+				}
+			]
+		}
+}

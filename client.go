@@ -18,8 +18,8 @@ import (
 
 var serverAddr = "sloth.local:9999"
 var bindAddr = "0.0.0.0:9991" // not implemented
-var nodeIdentifier = "sloth"
-var nodeRoom = api.Room_LOUNGE
+var nodeIdentifier = "study"
+var nodeRoom = api.Room_STUDY
 var thisVersion = version.CurrentVersion()
 var loadedModules = make([]modules.GreyhouseClientModule, 0)
 var tickModules = make([]modules.GreyhouseClientModule, 0)
@@ -121,6 +121,8 @@ func main() {
 		})
 		if e == nil {
 			// Perfect, we connected ok
+			rc := api.NewRulesClient(conn)
+			log.Print(rc.List(&api.RuleFilter{}))
 			clientHost := getClients(conn, &nodeClient, i.Key)
 			registered(clientHost)
 		} else {

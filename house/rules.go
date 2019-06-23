@@ -19,11 +19,15 @@ type RuleService struct {
 	rules RuleList
 	// Store the rules based on the Room they affect, allowing for cheaper 'can i do this' queries
 	appliesTo map[api.Room][]api.Rule
+	// modifiers that apply globally.
+	// these are inefficent as they must be walked by every room for every command, so limit this where possible!!
+	// rulename: modifier(s)
+	global map[string][]api.RuleModifier
 }
 
 func NewRuleService() RuleService {
 	log.Print("Starting rule service...")
-	service := RuleService{RuleList{}, make(map[api.Room][]api.Rule, 0)}
+	service := RuleService{RuleList{}, make(map[api.Room][]api.Rule, 0), map[string][]api.RuleModifier{}}
 	service.ReadRules()
 	return service
 }
@@ -87,6 +91,8 @@ func (rs RuleService) Delete(ctx context.Context, toDelete *api.Rule) (*api.Dele
 				applyList = append(applyList[:deleteRules[i]], applyList[:deleteRules[i+1]]...)
 			}
 			rs.appliesTo[modifier.Room] = applyList
+		} else {
+			delete(rs.global, toDelete.Name)
 		}
 	}
 	delete(rs.rules, toDelete.Name)

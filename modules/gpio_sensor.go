@@ -18,10 +18,11 @@ type GpioWatcher struct {
 	pin *gpio.Pin
 	reportHigh bool
 	reportLow bool
+	lastErr error
 }
 
 func NewGpioWatcher(pin int16) GpioWatcher {
-	return GpioWatcher{pin, nil, true, true}
+	return GpioWatcher{pin, nil, true, true, nil}
 }
 
 func (watch *GpioWatcher) Init() error {

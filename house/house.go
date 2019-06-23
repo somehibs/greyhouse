@@ -26,8 +26,8 @@ func New(ruleService *RuleService, presenceService *presence.PresenceService) Ho
 	hueBridge := thirdparty.NewHueBridge("192.168.0.17")
 	house.Rooms[api.Room_LOUNGE] = Room{
 		Lights: []thirdparty.Light{
-			hueBridge.NewLight("lounge front"),
-			hueBridge.NewLight("lounge rear"),
+			//hueBridge.NewLight("lounge front"),
+			//hueBridge.NewLight("lounge rear"),
 		},
 	}
 	house.Rooms[api.Room_STUDY] = Room{
@@ -66,12 +66,26 @@ func (h House) TickMinute() {
 
 func (h House) PersonLocationUpdate(personId int64) {
 }
+func (h House) TryGetLights(room api.Room) []thirdparty.Light {
+	return h.TryGetLightsImpl(room, true)
+}
+
+func (h House) TryGetLightsImpl(room api.Room, ignoreRules bool) []thirdparty.Light {
+	if ignoreRules {
+		return h.Rooms[room].Lights
+	} else {
+		// ask rules if room is restricted from lights
+		//
+		return nil
+	}
+
+}
 
 func (h House) RoomPresenceChange(room api.Room, present int32) {
 	if present > 0 {
 		// turn on the lights
-		log.Printf("Turning on %d lights in %+v", len(h.Rooms[room].Lights), room)
-		for _, light := range h.Rooms[room].Lights {
+		log.Printf("Turning on %d lights in %+v", len(h.TryGetLights(room)), room)
+		for _, light := range h.TryGetLights(room) {
 			light.On()
 		}
 	} else {
