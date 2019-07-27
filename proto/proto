@@ -1,4 +1,6 @@
-GOPATH=/home/cherry/go
+if [[ -z $GOPATH ]]; then
+	GOPATH="$HOME/go"
+fi
 INDIR="$GOPATH/src/git.circuitco.de/self/greyhouse/proto"
 OUTDIR="$GOPATH/src/git.circuitco.de/self/greyhouse/api"
 pushd `pwd`
