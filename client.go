@@ -4,8 +4,11 @@ import (
 	"log"
 	"time"
 	"os"
+	"errors"
 	"os/signal"
 	"syscall"
+	"encoding/json"
+	"io/ioutil"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -16,35 +19,65 @@ import (
 	"git.circuitco.de/self/greyhouse/modules"
 )
 
-var serverAddr = "sloth.local:9999"
+type ModuleConfig struct {
+	Name string
+	Args []string
+}
+
+type ClientConfig struct {
+	Node string
+	NodeAddress string
+	Room api.Room
+	Server string
+	Modules []ModuleConfig
+}
+
+func loadClientConfig() (ClientConfig, error) {
+	clientConfig := ClientConfig{}
+	f, err := os.Open("client.json")
+	if err != nil {
+		return clientConfig, err
+	}
+	read, err := ioutil.ReadAll(f)
+	if err != nil {
+		return clientConfig, err
+	}
+	err = json.Unmarshal(read, &clientConfig)
+	if clientConfig.Room == 0 {
+		return clientConfig, errors.New("Room not correctly set.")
+	}
+	return clientConfig, err
+
+}
+
 var bindAddr = "0.0.0.0:9991" // not implemented
-var nodeIdentifier = "study"
-var nodeRoom = api.Room_STUDY
 var thisVersion = version.CurrentVersion()
 var loadedModules = make([]modules.GreyhouseClientModule, 0)
 var tickModules = make([]modules.GreyhouseClientModule, 0)
 
-func loadModules() {
-	// At the moment, this is just manual based on configuration that's not written yet
+func loadModules(moduleConfig []ModuleConfig) {
 	log.Print("loading modules")
-	gpioWatcher := modules.NewGpioWatcher(23)
-	loadedModules = append(loadedModules, &gpioWatcher)
+	for _, config := range moduleConfig {
+		log.Printf("module: %+v\n", config)
+		//gpioWatcher := modules.NewGpioWatcher(23)
+		//loadedModules = append(loadedModules, &module)
+	}
 	for _, module := range loadedModules {
 		e := module.Init()
 		if e != nil {
-			log.Fatalf("couldnt load module: %+v", e)
+			log.Fatalf("couldnt load a module: %+v", e)
 		}
 		if module.CanTick() {
 			tickModules = append(tickModules, module)
 		}
 	}
 	shutdownSignal()
-	log.Print("modules loaded")
+	log.Print("loaded")
 }
 
 func shutdownSignal() {
 	// trap signals
-	log.Print("Trapping signals")
+	log.Print("trapping shutdown to allow for module shutdown...")
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT)
 	go func() {
@@ -97,12 +130,17 @@ func getClients(conn *grpc.ClientConn, nodeClient *api.PrimaryNodeClient, nodeKe
 
 func main() {
 	log.Print("started")
-	loadModules()
+	log.Print("loading config...")
+	config, err := loadClientConfig()
+	if err != nil {
+		panic("Could not load config json: " + err.Error())
+	}
+	loadModules(config.Modules)
 
 	for ;; {
-		conn, err := grpc.Dial(serverAddr, grpc.WithInsecure())
+		conn, err := grpc.Dial(config.Server, grpc.WithInsecure())
 		if err != nil {
-			log.Fatalf("Failed to connect to service %s because %s", serverAddr, err.Error())
+			log.Fatalf("Failed to connect to %s: %s", config.Server, err.Error())
 		}
 
 		nodeClient := api.NewPrimaryNodeClient(conn)
@@ -114,15 +152,15 @@ func main() {
 
 		// Call Register with our favourite address
 		i, e := nodeClient.Register(ctx, &api.NodeMetadata{
-			Identifier: nodeIdentifier,
-			ClientAddress: bindAddr,
-			Room: nodeRoom,
+			Identifier: config.Node,
+			ClientAddress: config.NodeAddress,
+			Room: config.Room,
 			Version: &thisVersion,
 		})
 		if e == nil {
 			// Perfect, we connected ok
 			rc := api.NewRulesClient(conn)
-			log.Print(rc.List(&api.RuleFilter{}))
+			log.Print(rc.List(ctx, &api.RuleFilter{}))
 			clientHost := getClients(conn, &nodeClient, i.Key)
 			registered(clientHost)
 		} else {
