@@ -117,7 +117,8 @@ func registered(clientHost modules.ClientHost) {
 			for _, module := range loadedModules {
 				e := module.Tick()
 				if e != nil {
-					log.Print("all modules tick found %+v in %+v", e, module)
+					log.Printf("all modules tick found %s in %+v", e.Error(), module)
+					return
 				}
 			}
 		}
@@ -176,6 +177,7 @@ func main() {
 				log.Printf("Rule list: %+v\n", l)
 			}
 			registered(clientHost)
+			log.Print("Warning: registered() returned, authentication failure? retry connection")
 		} else {
 			log.Printf("R: %+v Error: %+v\n", i, e)
 		}
