@@ -9,9 +9,12 @@ import (
 	"google.golang.org/grpc"
 
 	api "git.circuitco.de/self/greyhouse/api"
+	// this was a mistake, should have single-packaged everything that would have fit in one package
+	// TODO: repackage node, house, presence and web as greyhouse
 	"git.circuitco.de/self/greyhouse/node"
 	"git.circuitco.de/self/greyhouse/house"
 	"git.circuitco.de/self/greyhouse/presence"
+	"git.circuitco.de/self/greyhouse/web"
 
 	util "git.circuitco.de/self/grpc-util"
 
@@ -30,7 +33,6 @@ func main() {
 	log.Print("Starting service.")
 	server := grpc.NewServer(
 		grpc.UnaryInterceptor(grpcm.ChainUnaryServer(util.LogInterceptor, util.AuthenticationInterceptor)),
-		//grpc.UnaryInterceptor(util.LogInterceptor)
 	)
 	util.NoAuthMethods["/greyhouse.PrimaryNode/Register"] = true
 
@@ -49,6 +51,9 @@ func main() {
 
 	houseService := house.New(&rulesService, &presenceService)
 	log.Printf("Made a house %s", houseService)
+
+	log.Print("Starting public webserver")
+	web.Route(":9998")
 
 	log.Print("Starting house tick thread.")
 	houseService.StartTicking()

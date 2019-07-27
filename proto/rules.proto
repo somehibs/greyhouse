@@ -3,16 +3,13 @@ import "node.proto";
 import "person.proto";
 package greyhouse;
 
-message RuleModifier {
-    // Can only apply to one Room at a time.
-    Room room = 1;
-    // Can apply to as many lights as you like. If you change the name, they'll stop working, so, you know. Be aware of that.
-    // If you don't set any lights, it will apply to all lights in a room.
-    repeated string light = 2;
+message RuleEffect {
+    // lighting? intercom? some sort of notification system?
+    string system = 1;
+    // optional
+    repeated string target = 2;
     // Disable lights. If this is false, lights will not be modified.
     bool disable = 3;
-    // Force the light brightness
-    int32 brightness = 4;
 }
 
 // If any of the people are in any of the rooms referenced, this rule applies
@@ -21,6 +18,8 @@ message RuleModifier {
 message RuleLocation {
     repeated Room room = 1;
     repeated PersonId person = 2;
+    int64 timeStart = 3;
+    int64 timeEnd = 4;
 }
 
 message Rule {
@@ -28,11 +27,8 @@ message Rule {
     string name = 1;
     // Optional conditions.
     RuleLocation room = 2;
-    // s since start of day
-    int64 timeStart = 3;
-    int64 timeEnd = 4;
     // Side effects.
-    repeated RuleModifier modifiers = 6;
+    repeated RuleEffect modifiers = 3;
 }
 
 message RuleList {

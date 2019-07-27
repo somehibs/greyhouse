@@ -48,7 +48,6 @@ func NewService(nodeService *node.NodeService) PresenceService {
 
 func (ps *PresenceService) AddCallback(callback PresenceCallback) {
 	ps.callbacks = append(ps.callbacks, callback)
-	log.Debugf("callback for presence added? %d", len(ps.callbacks))
 }
 
 func (ps *PresenceService) RemoveCallback(removalCallback PresenceCallback) {
@@ -57,7 +56,6 @@ func (ps *PresenceService) RemoveCallback(removalCallback PresenceCallback) {
 			ps.callbacks = append(ps.callbacks[:ind], ps.callbacks[:ind+1]...)
 		}
 	}
-	log.Debugf("callback for presence removed? %d", len(ps.callbacks))
 }
 
 func (ps *PresenceService) Update(ctx context.Context, update *api.PresenceUpdate) (*api.PresenceUpdateReply, error) {
@@ -68,7 +66,6 @@ func (ps *PresenceService) Update(ctx context.Context, update *api.PresenceUpdat
 		unode,
 	}
 	log.Debugf("New motion: %+v from node %+v", update.PeopleDetected, unode.Name)
-	log.Debugf("callback for presences? %d", len(ps.callbacks))
 	for _, callback := range ps.callbacks {
 		callback.RoomPresenceChange(unode.Room, update.PeopleDetected)
 	}

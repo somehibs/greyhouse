@@ -1,0 +1,16 @@
+<header id="root" class="container">
+<h3>Greyhouse</h3>
+</header>
+<section id="house" class="container">
+Show each room as its own element, rendered based on input from the template controller.
+	<house class="container">
+		<div class="row">
+			<div class="column">
+				asdf
+			</div>
+			<div class="column">
+				asdf
+			</div>
+		</div>
+	</house>
+</section>

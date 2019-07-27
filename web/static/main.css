@@ -1,0 +1,21 @@
+:root {
+	--text-color: #000;
+	--bg-color: #fff;
+}
+
+[data-theme="dark"] {
+	--text-color: #fff;
+	--bg-color: #000;
+}
+
+body {
+	background-color: var(--bg-color);
+}
+
+house {
+	margin-top: 5rem;
+}
+
+main {
+	margin-top: 2rem;
+}

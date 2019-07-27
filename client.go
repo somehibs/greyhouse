@@ -98,6 +98,7 @@ func shutdownSignal() {
 }
 
 func registered(clientHost modules.ClientHost) {
+	log.Print("Connected. Ticking modules...")
 	// refresh the modules
 	for _, module := range loadedModules {
 		module.Update(&clientHost)
@@ -113,7 +114,7 @@ func registered(clientHost modules.ClientHost) {
 		}
 		time.Sleep(1*time.Second)
 		tickCount += 1
-		if tickCount % 10 == 0 {
+		if tickCount % 5 == 0 {
 			for _, module := range loadedModules {
 				e := module.Tick()
 				if e != nil {

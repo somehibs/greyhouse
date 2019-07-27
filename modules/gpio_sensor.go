@@ -79,7 +79,12 @@ func (watch *GpioWatcher) Update(ch *ClientHost) {
 	watch.writeUpdate(watch.pin.Read())
 }
 
+func (watch *GpioWatcher) clearError() {
+	watch.lastErr = nil
+}
+
 func (watch *GpioWatcher) CanTick() bool { return false }
 func (watch *GpioWatcher) Tick() error {
+	defer watch.clearError()
 	return watch.lastErr
 }
