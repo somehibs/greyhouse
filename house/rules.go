@@ -17,17 +17,16 @@ const ruleConfigFile = "rules.json"
 type RuleService struct {
 	// Store all the rules here, based on their rule key.
 	rules RuleList
-	// Store the rules based on the Room they affect, allowing for cheaper 'can i do this' queries
-	appliesTo map[api.Room][]api.Rule
-	// modifiers that apply globally.
-	// these are inefficent as they must be walked by every room for every command, so limit this where possible!!
-	// rulename: modifier(s)
-	global map[string][]api.RuleModifier
+	// Store the rules based on the Room they affect.
+	appliesToRoom map[api.Room][]api.Rule
+	global map[string]*api.Rule
+	// Per-person rules. Not yet implemented.
+	//appliesToPerson map[int32][]api.Rule
 }
 
 func NewRuleService() RuleService {
 	log.Print("Starting rule service...")
-	service := RuleService{RuleList{}, make(map[api.Room][]api.Rule, 0), map[string][]api.RuleModifier{}}
+	service := RuleService{RuleList{}, make(map[api.Room][]api.Rule, 0), map[string]*api.Rule{}}
 	service.ReadRules()
 	return service
 }
@@ -63,12 +62,25 @@ func (rs RuleService) Create(ctx context.Context, rule *api.Rule) (*api.CreateRu
 	}
 	// Create the rule, put it in the right places.
 	rs.rules[rule.Name] = rule
-	for _, modifier := range rule.Modifiers {
-		if rs.appliesTo[modifier.Room] != nil {
-			rs.appliesTo[modifier.Room] = append(rs.appliesTo[modifier.Room], *rule)
-		} else {
-			rs.appliesTo[modifier.Room] = []api.Rule{*rule}
+	isGlobal := false
+	for _, condition := range rule.Conditions {
+		if condition.Room == 0 || (condition.TimeStart == 0 && condition.TimeEnd == 0) {
+			isGlobal = true
+			continue
 		}
+		if rs.appliesToRoom[condition.Room] != nil {
+			rs.appliesToRoom[condition.Room] = append(rs.appliesToRoom[condition.Room], *rule)
+		} else {
+			rs.appliesToRoom[condition.Room] = []api.Rule{*rule}
+		}
+	}
+	if len(rule.Conditions) == 0 {
+		log.Printf("no conditions set, letting rule \"%s\" go global", rule.Name)
+		isGlobal = true
+	}
+	if isGlobal {
+		log.Printf("Adding global rule: %s", rule.Name)
+		rs.global[rule.Name] = rule
 	}
 	return &api.CreateRuleResponse{}, nil
 }
@@ -78,9 +90,9 @@ func (rs RuleService) Delete(ctx context.Context, toDelete *api.Rule) (*api.Dele
 		return nil, errors.New("not found")
 	}
 	rule := rs.rules[toDelete.Name]
-	for _, modifier := range rule.Modifiers {
-		if rs.appliesTo[modifier.Room] != nil {
-			applyList := rs.appliesTo[modifier.Room]
+	for _, modifier := range rule.Conditions {
+		if rs.appliesToRoom[modifier.Room] != nil {
+			applyList := rs.appliesToRoom[modifier.Room]
 			deleteRules := make([]int, 0)
 			for index, modifierRule := range applyList {
 				if modifierRule.Name == toDelete.Name {
@@ -90,12 +102,13 @@ func (rs RuleService) Delete(ctx context.Context, toDelete *api.Rule) (*api.Dele
 			for i := len(deleteRules)-1; i >= 0; i-- {
 				applyList = append(applyList[:deleteRules[i]], applyList[:deleteRules[i+1]]...)
 			}
-			rs.appliesTo[modifier.Room] = applyList
-		} else {
-			delete(rs.global, toDelete.Name)
+			rs.appliesToRoom[modifier.Room] = applyList
 		}
 	}
 	delete(rs.rules, toDelete.Name)
+	if rs.global[toDelete.Name] != nil {
+		delete(rs.global, toDelete.Name)
+	}
 	return &api.DeleteRuleResponse{}, nil
 }
 

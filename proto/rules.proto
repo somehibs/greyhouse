@@ -13,11 +13,11 @@ message RuleEffect {
 }
 
 // If any of the people are in any of the rooms referenced, this rule applies
-// If the room is set, this rule applies
-// If the rule location isn't set, this rule applies to the entire house, always.
-message RuleLocation {
-    repeated Room room = 1;
-    repeated PersonId person = 2;
+// If the room is set, this rule applies to that room
+// If the room is not set, and the time is not set, nothing happens
+message RuleConditions {
+    Room room = 1;
+    PersonId person = 2;
     int64 timeStart = 3;
     int64 timeEnd = 4;
 }
@@ -26,7 +26,7 @@ message Rule {
     // A name to reference the rule
     string name = 1;
     // Optional conditions.
-    RuleLocation room = 2;
+    repeated RuleConditions conditions = 2;
     // Side effects.
     repeated RuleEffect modifiers = 3;
 }
