@@ -58,9 +58,17 @@ var tickModules = make([]modules.GreyhouseClientModule, 0)
 func loadModules(moduleConfig []ModuleConfig) {
 	log.Print("loading modules")
 	for _, config := range moduleConfig {
-		log.Printf("module: %+v\n", config)
-		//gpioWatcher := modules.NewGpioWatcher(23)
-		//loadedModules = append(loadedModules, &module)
+		var module modules.GreyhouseClientModule
+		switch config.Name {
+		case "gpio":
+			gpio := modules.NewGpioWatcher(23)
+			module = &gpio
+		default:
+			log.Panicf("module name not recognised: %+v\n", config)
+		}
+		if module != nil {
+			loadedModules = append(loadedModules, module)
+		}
 	}
 	for _, module := range loadedModules {
 		e := module.Init()
@@ -161,7 +169,12 @@ func main() {
 			// Perfect, we connected ok
 			rc := api.NewRulesClient(conn)
 			clientHost := getClients(conn, &nodeClient, i.Key)
-			log.Print(rc.List(clientHost.GetContext(), &api.RuleFilter{}))
+			l, err := rc.List(clientHost.GetContext(), &api.RuleFilter{})
+			if err != nil {
+				log.Print("Could not get list: " + err.Error())
+			} else {
+				log.Printf("Rule list: %+v\n", l)
+			}
 			registered(clientHost)
 		} else {
 			log.Printf("R: %+v Error: %+v\n", i, e)

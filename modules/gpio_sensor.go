@@ -71,7 +71,7 @@ func (watch *GpioWatcher) writeUpdate(pinState gpio.Level) {
 		Accuracy: 0,
 		PeopleDetected: int32(peopleDetected),
 	}
-	(*chost.Presence).Update(ctx, &update)
+	_, watch.lastErr = (*chost.Presence).Update(ctx, &update)
 }
 
 func (watch *GpioWatcher) Update(ch *ClientHost) {
@@ -81,5 +81,5 @@ func (watch *GpioWatcher) Update(ch *ClientHost) {
 
 func (watch *GpioWatcher) CanTick() bool { return false }
 func (watch *GpioWatcher) Tick() error {
-	return nil
+	return watch.lastErr
 }
