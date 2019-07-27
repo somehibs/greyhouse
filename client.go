@@ -160,8 +160,8 @@ func main() {
 		if e == nil {
 			// Perfect, we connected ok
 			rc := api.NewRulesClient(conn)
-			log.Print(rc.List(ctx, &api.RuleFilter{}))
 			clientHost := getClients(conn, &nodeClient, i.Key)
+			log.Print(rc.List(clientHost.GetContext(), &api.RuleFilter{}))
 			registered(clientHost)
 		} else {
 			log.Printf("R: %+v Error: %+v\n", i, e)
