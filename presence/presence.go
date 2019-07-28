@@ -1,6 +1,10 @@
 package presence
 
 import (
+	"os"
+	"time"
+	"fmt"
+	"encoding/csv"
 	"git.circuitco.de/self/greyhouse/log"
 
 	"golang.org/x/net/context"
@@ -65,6 +69,7 @@ func (ps *PresenceService) Update(ctx context.Context, update *api.PresenceUpdat
 		*update,
 		unode,
 	}
+	logUpdate(unode.Room, update)
 	log.Debugf("New motion: %+v from node %+v", update.PeopleDetected, unode.Name)
 	for _, callback := range ps.callbacks {
 		callback.RoomPresenceChange(unode.Room, update.PeopleDetected)
@@ -76,6 +81,22 @@ func (ps *PresenceService) Update(ctx context.Context, update *api.PresenceUpdat
 			reply.Throttle = 15
 	}
 	return reply, nil
+}
+
+func logUpdate(room api.Room, update *api.PresenceUpdate) error {
+	statFile, err := os.Stat("motion.csv")
+	f, err := os.OpenFile("motion.csv", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	defer f.Close()
+	if err != nil {
+		return err
+	}
+	w := csv.NewWriter(f)
+	if statFile == nil || statFile.Size() == 0 {
+		w.Write([]string{"time","room","source","state"})
+	}
+	w.Write([]string{time.Now().Format("2006-01-02T15:04:05-0700"), fmt.Sprintf("%s", room), fmt.Sprintf("%s", update.Type), fmt.Sprintf("%d", update.PeopleDetected)})
+	w.Flush()
+	return nil
 }
 
 // We know when presences expire and when we need reprocessing.

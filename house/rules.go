@@ -147,7 +147,7 @@ func getMidnightToday() time.Time {
 }
 
 func checkConditions(room api.Room, conditions []*api.RuleConditions) bool {
-	log.Printf("Checking conditions: %+v", conditions)
+	//log.Printf("Checking conditions: %+v", conditions)
 	for _, condition := range conditions {
 		cond := *condition
 		if inRange(cond) && roomMatch(cond, room) {
