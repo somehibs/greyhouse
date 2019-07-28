@@ -67,16 +67,21 @@ func (h House) TickMinute() {
 func (h House) PersonLocationUpdate(personId int64) {
 }
 func (h House) TryGetLights(room api.Room) []thirdparty.Light {
-	return h.TryGetLightsImpl(room, true)
+	return h.TryGetLightsImpl(room, false)
 }
 
 func (h House) TryGetLightsImpl(room api.Room, ignoreRules bool) []thirdparty.Light {
 	if ignoreRules {
 		return h.Rooms[room].Lights
 	} else {
-		// ask rules if room is restricted from lights
-		//
-		return nil
+		rule := h.rules.ApplyRules(room)
+		for _, modification := range rule {
+			if modification.System == "LIGHT" && modification.Disable {
+				log.Print("Disabling lights due to rule conditions.")
+				return nil
+			}
+		}
+		return h.Rooms[room].Lights
 	}
 
 }
@@ -84,11 +89,14 @@ func (h House) TryGetLightsImpl(room api.Room, ignoreRules bool) []thirdparty.Li
 func (h House) RoomPresenceChange(room api.Room, present int32) {
 	if present > 0 {
 		// turn on the lights
-		log.Printf("Turning on %d lights in %+v", len(h.TryGetLights(room)), room)
-		for _, light := range h.TryGetLights(room) {
-			light.On()
+		lights := h.TryGetLights(room)
+		if len(lights) > 0 {
+			log.Printf("Turning on %d lights in %+v", len(h.TryGetLights(room)), room)
+			for _, light := range h.TryGetLights(room) {
+				light.On()
+			}
 		}
 	} else {
-		// ignore leaving rooms for now
+		// ignore leaving rooms
 	}
 }

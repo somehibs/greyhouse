@@ -87,7 +87,7 @@ func shutdownSignal() {
 	// trap signals
 	log.Print("trapping shutdown to allow for module shutdown...")
 	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT)
+	signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-signals
 		for _, module := range loadedModules {

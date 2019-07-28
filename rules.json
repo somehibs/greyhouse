@@ -1,13 +1,11 @@
 {
-	"daylight_hours":
+	"night hours":
 		{
-			"name": "morning_hours",
-			"timeStart": 0,
-			"timeEnd": 32400,
-			"modifiers": [
-				{
-					
-				}
-			]
+			"name": "night hours",
+			"conditions": [
+				{"timeStart": 0, "timeEnd": 32400},
+				{"timeStart": 77400, "timeEnd": 86400}
+			],
+			"modifiers": [{"system": "LIGHT", "disable": true}]
 		}
 }

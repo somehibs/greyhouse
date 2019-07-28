@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"encoding/json"
+	"time"
 
 	"golang.org/x/net/context"
 
@@ -19,9 +20,8 @@ type RuleService struct {
 	rules RuleList
 	// Store the rules based on the Room they affect.
 	appliesToRoom map[api.Room][]api.Rule
+	// returned for every room
 	global map[string]*api.Rule
-	// Per-person rules. Not yet implemented.
-	//appliesToPerson map[int32][]api.Rule
 }
 
 func NewRuleService() RuleService {
@@ -40,7 +40,11 @@ func (rs RuleService) ReadRules() {
 	ruleList := RuleList{}
 	err = json.Unmarshal(in, &ruleList)
 	if err != nil {
-		log.Printf("Could not unmarshal list because %+v - used bytes %s", err, in)
+		log.Panicf("Could not unmarshal list because %+v - used bytes %s", err, in)
+	}
+	for _, rule := range ruleList {
+		log.Printf("Loaded file rule %+v", rule)
+		rs.Create(nil, rule)
 	}
 }
 
@@ -120,4 +124,59 @@ func (rs RuleService) List(ctx context.Context, filter *api.RuleFilter) (*api.Ru
 		i += 1
 	}
 	return &api.RuleList{Rules: ruleList}, nil
+}
+
+func (rs RuleService) ApplyRules(room api.Room) []*api.RuleEffect {
+	rules := make([]*api.RuleEffect, 0)
+	for _, v := range rs.global {
+		if checkConditions(room, v.Conditions) {
+			rules = append(rules, v.Modifiers...)
+		}
+	}
+	for _, v := range rs.appliesToRoom[room] {
+		if checkConditions(room, v.Conditions) {
+			rules = append(rules, v.Modifiers...)
+		}
+	}
+	return rules
+}
+
+func getMidnightToday() time.Time {
+	y, m, d := time.Now().Date()
+	return time.Date(y, m, d, 0, 0, 0, 0, time.Now().Location())
+}
+
+func checkConditions(room api.Room, conditions []*api.RuleConditions) bool {
+	log.Printf("Checking conditions: %+v", conditions)
+	for _, condition := range conditions {
+		cond := *condition
+		if inRange(cond) && roomMatch(cond, room) {
+			return true
+		}
+	}
+	return false
+}
+
+func roomMatch(condition api.RuleConditions, room api.Room) bool {
+	if condition.Room == 0 {
+		return true
+	}
+	if condition.Room == room {
+		return true
+	}
+	return false
+}
+
+func inRange(condition api.RuleConditions) bool {
+	if condition.TimeStart == 0 && condition.TimeEnd == 0 {
+		return true
+	}
+	midnight := getMidnightToday()
+	start := midnight.Add(time.Duration(condition.TimeStart)*time.Second)
+	end := midnight.Add(time.Duration(condition.TimeEnd)*time.Second)
+	now := time.Now()
+	match := now.After(start) && now.Before(end)
+	//log.Printf("Start %s End %s", start, end)
+	//log.Printf("range match %s", match)
+	return match
 }
