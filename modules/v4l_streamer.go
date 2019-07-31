@@ -8,19 +8,25 @@ import (
 	api "git.circuitco.de/self/greyhouse/api"
 
 	"github.com/korandiz/v4l"
+
+	"git.circuitco.de/self/greyhouse/recognise"
 )
 
 type V4lStreamer struct {
 	device *v4l.Device
 	lastErr error
 	lastUpload *time.Time
+	recogniser *recognise.Recogniser
 }
 
 func NewV4lStreamer() V4lStreamer {
-	return V4lStreamer{nil, nil, nil}
+	return V4lStreamer{nil, nil, nil, nil}
 }
 
 func (s *V4lStreamer) Init() error {
+	// load up tensorflow, fuck it, why not
+	recogniser := recognise.NewRecogniser("model")
+	s.recogniser = &recogniser
 	// Check for V4L devices
 	devices := v4l.FindDevices()
 	if len(devices) > 0 {
@@ -100,7 +106,10 @@ func (watch *V4lStreamer) writeUpdate(t time.Time, img *v4l.Buffer) {
 	//	Accuracy: 0,
 	//	PeopleDetected: int32(peopleDetected),
 	//}
+	start := time.Now()
 	_, watch.lastErr = (*chost.Presence).Image(ctx, &update)
+	end := time.Now()
+	log.Printf("Uploading took %s", end.Sub(start))
 }
 
 func (s *V4lStreamer) Update() {
@@ -115,8 +124,9 @@ func (watch *V4lStreamer) clearError() {
 	watch.lastErr = nil
 }
 
-func (watch *V4lStreamer) CanTick() bool { return false }
+func (watch *V4lStreamer) CanTick() bool { return true }
 func (watch *V4lStreamer) Tick() error {
 	defer watch.clearError()
+	watch.Update()
 	return watch.lastErr
 }

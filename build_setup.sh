@@ -23,3 +23,6 @@ fi
 echo "Updating protoc-gen-go and greyhouse"
 go get -u github.com/golang/protobuf/protoc-gen-go
 go get git.circuitco.de/self/greyhouse
+echo "updating tensorflow"
+wget https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.14.0.tar.gz
+sudo tar -C /usr/local -xzf ./libtensorflow-cpu-linux-x86_64-1.14.0.tar.gz
