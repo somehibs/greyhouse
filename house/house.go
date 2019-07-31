@@ -109,7 +109,7 @@ func (h House) RoomPresenceChange(room api.Room, present int32) {
 		identifier := rand.Int()
 		h.leavingRoom[room] = 0
 		h.enteringRoom[room] = identifier
-		go h.eventuallyEnterRoom(room, identifier, 2)
+		go h.eventuallyEnterRoom(room, identifier, 1)
 	} else {
 		// ignore leaving rooms
 		identifier := rand.Int()
