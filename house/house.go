@@ -15,6 +15,7 @@ type House struct {
 	rules *RuleService
 	Rooms map[api.Room]Room
 	leavingRoom map[api.Room]int
+	enteringRoom map[api.Room]int
 }
 
 type Room struct {
@@ -23,7 +24,7 @@ type Room struct {
 
 func New(ruleService *RuleService, presenceService *presence.PresenceService) House {
 	log.Print("Starting house...")
-	house := House{Rooms: map[api.Room]Room{}, rules: ruleService, presence: presenceService, leavingRoom: map[api.Room]int{}}
+	house := House{Rooms: map[api.Room]Room{}, rules: ruleService, presence: presenceService, leavingRoom: map[api.Room]int{}, enteringRoom: map[api.Room]int{}}
 	presenceService.AddCallback(house)
 	hueBridge := thirdparty.NewHueBridge("192.168.0.10")
 	house.Rooms[api.Room_LOUNGE] = Room{
@@ -88,10 +89,9 @@ func (h House) TryGetLightsImpl(room api.Room, ignoreRules bool) []thirdparty.Li
 
 }
 
-
-func (h House) RoomPresenceChange(room api.Room, present int32) {
-	if present > 0 {
-		// turn on the lights
+func (h House) eventuallyEnterRoom(room api.Room, id int, pause int) {
+	time.Sleep(time.Duration(pause)*time.Second)
+	if h.enteringRoom[room] == id {
 		lights := h.TryGetLights(room)
 		if len(lights) > 0 {
 			log.Printf("Turning on %d lights in %+v", len(lights), room)
@@ -99,9 +99,21 @@ func (h House) RoomPresenceChange(room api.Room, present int32) {
 				light.On()
 			}
 		}
+	}
+}
+
+
+func (h House) RoomPresenceChange(room api.Room, present int32) {
+	if present > 0 {
+		// turn on the lights
+		identifier := rand.Int()
+		h.leavingRoom[room] = 0
+		h.enteringRoom[room] = identifier
+		go h.eventuallyEnterRoom(room, identifier, 2)
 	} else {
 		// ignore leaving rooms
 		identifier := rand.Int()
+		h.enteringRoom[room] = 0
 		h.leavingRoom[room] = identifier
 		go h.eventuallyLeaveRoom(room, identifier, 60)
 	}
