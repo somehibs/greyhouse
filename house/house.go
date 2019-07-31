@@ -3,6 +3,7 @@ package house
 import (
 	"git.circuitco.de/self/greyhouse/log"
 	"time"
+	"math/rand"
 
 	"git.circuitco.de/self/greyhouse/thirdparty"
 	"git.circuitco.de/self/greyhouse/presence"
@@ -13,6 +14,7 @@ type House struct {
 	presence *presence.PresenceService
 	rules *RuleService
 	Rooms map[api.Room]Room
+	leavingRoom map[api.Room]int
 }
 
 type Room struct {
@@ -21,7 +23,7 @@ type Room struct {
 
 func New(ruleService *RuleService, presenceService *presence.PresenceService) House {
 	log.Print("Starting house...")
-	house := House{Rooms: map[api.Room]Room{}, rules: ruleService, presence: presenceService}
+	house := House{Rooms: map[api.Room]Room{}, rules: ruleService, presence: presenceService, leavingRoom: map[api.Room]int{}}
 	presenceService.AddCallback(house)
 	hueBridge := thirdparty.NewHueBridge("192.168.0.10")
 	house.Rooms[api.Room_LOUNGE] = Room{
@@ -86,17 +88,33 @@ func (h House) TryGetLightsImpl(room api.Room, ignoreRules bool) []thirdparty.Li
 
 }
 
+
 func (h House) RoomPresenceChange(room api.Room, present int32) {
 	if present > 0 {
 		// turn on the lights
 		lights := h.TryGetLights(room)
 		if len(lights) > 0 {
-			log.Printf("Turning on %d lights in %+v", len(h.TryGetLights(room)), room)
-			for _, light := range h.TryGetLights(room) {
+			log.Printf("Turning on %d lights in %+v", len(lights), room)
+			for _, light := range lights {
 				light.On()
 			}
 		}
 	} else {
 		// ignore leaving rooms
+		identifier := rand.Int()
+		h.leavingRoom[room] = identifier
+		go h.eventuallyLeaveRoom(room, identifier, 60)
+	}
+}
+
+func (h House) eventuallyLeaveRoom(room api.Room, id int, sleep int) {
+	time.Sleep(time.Duration(sleep)*time.Second)
+	if h.leavingRoom[room] == id {
+		h.leavingRoom[room] = 0
+		lights := h.TryGetLights(room)
+		log.Printf("Turning off %d lights in %+v", len(lights), room)
+		for _, light := range lights {
+			light.Off()
+		}
 	}
 }

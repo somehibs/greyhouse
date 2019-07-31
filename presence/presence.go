@@ -83,6 +83,8 @@ func (ps *PresenceService) Update(ctx context.Context, update *api.PresenceUpdat
 	return reply, nil
 }
 
+var MotionTimeFormat = "2006-01-02T15:04:05-0700"
+
 func logUpdate(room api.Room, update *api.PresenceUpdate) error {
 	statFile, err := os.Stat("motion.csv")
 	f, err := os.OpenFile("motion.csv", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
@@ -94,7 +96,7 @@ func logUpdate(room api.Room, update *api.PresenceUpdate) error {
 	if statFile == nil || statFile.Size() == 0 {
 		w.Write([]string{"time","room","source","state"})
 	}
-	w.Write([]string{time.Now().Format("2006-01-02T15:04:05-0700"), fmt.Sprintf("%s", room), fmt.Sprintf("%s", update.Type), fmt.Sprintf("%d", update.PeopleDetected)})
+	w.Write([]string{time.Now().Format(MotionTimeFormat), fmt.Sprintf("%s", room), fmt.Sprintf("%s", update.Type), fmt.Sprintf("%d", update.PeopleDetected)})
 	w.Flush()
 	return nil
 }

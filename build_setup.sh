@@ -1,3 +1,4 @@
+export GO111MODULE=off
 if [[ ! -d /usr/local/go && ! -d /opt/go ]]; then
 	echo "Go not installed. Assuming rpi, installing armv6"
 	wget https://dl.google.com/go/go1.12.4.linux-armv6l.tar.gz
