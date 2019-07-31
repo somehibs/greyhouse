@@ -36,7 +36,7 @@ func main() {
 	f.Close()
 
 	log.Printf("Generating plot from %d lines.", len(lines))
-	lmax := len(lines)/4
+	lmax := len(lines)//lmax := len(lines)/4
 	lines = lines[:lmax]
 	points := make(plotter.XYs, len(lines))
 	for i := range lines {
@@ -69,7 +69,7 @@ func main() {
 	p.Add(plotLine)//, plotPoints)
 	cent := 200*vg.Centimeter
 	log.Printf("Rendering %+v graph with %d points", cent, len(points))
-	err = p.Save(cent, 5*vg.Centimeter, "motion.png")
+	err = p.Save(cent, 5*vg.Centimeter, "motion.svg")
 	pan(err)
 }
 
