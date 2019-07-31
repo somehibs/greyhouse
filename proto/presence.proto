@@ -27,10 +27,20 @@ message PresenceUpdate {
 	repeated PersonId knownPerson = 7;
 }
 
+message ImageUpdate {
+	int64 time = 1;
+	bytes image = 2;
+}
+
 message PresenceUpdateReply {
+	int32 throttle = 1;
+}
+
+message ImageUpdateReply {
 	int32 throttle = 1;
 }
 
 service Presence {
 	rpc Update(PresenceUpdate) returns (PresenceUpdateReply) {}
+	rpc Image(ImageUpdate) returns (PresenceUpdateReply) {}
 }

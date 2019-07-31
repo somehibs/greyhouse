@@ -9,7 +9,6 @@ import (
 	api "git.circuitco.de/self/greyhouse/api"
 )
 
-var chost *ClientHost
 // This module lets you listen to a GPIO pin.
 // Based on type, we'll report to the right API.
 // For now, the only thing that raises and lowers GPIO is the PIR sensors.
@@ -74,8 +73,7 @@ func (watch *GpioWatcher) writeUpdate(pinState gpio.Level) {
 	_, watch.lastErr = (*chost.Presence).Update(ctx, &update)
 }
 
-func (watch *GpioWatcher) Update(ch *ClientHost) {
-	chost = ch
+func (watch *GpioWatcher) Update() {
 	watch.writeUpdate(watch.pin.Read())
 }
 

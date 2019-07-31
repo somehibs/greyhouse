@@ -62,6 +62,10 @@ func (ps *PresenceService) RemoveCallback(removalCallback PresenceCallback) {
 	}
 }
 
+func (ps *PresenceService) Image(ctx context.Context, update *api.ImageUpdate) (*api.PresenceUpdateReply, error) {
+	return nil, nil
+}
+
 func (ps *PresenceService) Update(ctx context.Context, update *api.PresenceUpdate) (*api.PresenceUpdateReply, error) {
 	unode := ps.nodes.GetNode(ctx)
 	reply := &api.PresenceUpdateReply{Throttle: 0}

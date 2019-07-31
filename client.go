@@ -19,17 +19,12 @@ import (
 	"git.circuitco.de/self/greyhouse/modules"
 )
 
-type ModuleConfig struct {
-	Name string
-	Args []string
-}
-
 type ClientConfig struct {
 	Node string
 	NodeAddress string
 	Room api.Room
 	Server string
-	Modules []ModuleConfig
+	Modules []modules.ModuleConfig
 }
 
 func loadClientConfig() (ClientConfig, error) {
@@ -55,32 +50,21 @@ var thisVersion = version.CurrentVersion()
 var loadedModules = make([]modules.GreyhouseClientModule, 0)
 var tickModules = make([]modules.GreyhouseClientModule, 0)
 
-func loadModules(moduleConfig []ModuleConfig) {
+func loadModules(moduleConfig []modules.ModuleConfig) error {
 	log.Print("loading modules")
-	for _, config := range moduleConfig {
-		var module modules.GreyhouseClientModule
-		switch config.Name {
-		case "gpio":
-			gpio := modules.NewGpioWatcher(23)
-			module = &gpio
-		default:
-			log.Panicf("module name not recognised: %+v\n", config)
-		}
-		if module != nil {
-			loadedModules = append(loadedModules, module)
-		}
+	var err error
+	loadedModules, err = modules.LoadModules(moduleConfig)
+	if err != nil {
+		return err
 	}
 	for _, module := range loadedModules {
-		e := module.Init()
-		if e != nil {
-			log.Fatalf("couldnt load a module: %+v", e)
-		}
 		if module.CanTick() {
 			tickModules = append(tickModules, module)
 		}
 	}
 	shutdownSignal()
 	log.Print("loaded")
+	return nil
 }
 
 func shutdownSignal() {
@@ -100,8 +84,9 @@ func shutdownSignal() {
 func registered(clientHost modules.ClientHost) {
 	log.Print("Connected. Ticking modules...")
 	// refresh the modules
+	modules.SetClientHost(&clientHost)
 	for _, module := range loadedModules {
-		module.Update(&clientHost)
+		module.Update()
 	}
 	// spin on ticking unless an error comes back about networking
 	tickCount := 0
@@ -145,7 +130,11 @@ func main() {
 	if err != nil {
 		panic("Could not load config json: " + err.Error())
 	}
-	loadModules(config.Modules)
+	err = loadModules(config.Modules)
+	if err != nil {
+		log.Panicf("Failed to load a module and ending safely now %+v", err)
+		return
+	}
 
 	for ;; {
 		conn, err := grpc.Dial(config.Server, grpc.WithInsecure())

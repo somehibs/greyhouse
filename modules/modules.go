@@ -1,7 +1,9 @@
 package modules
 
 import (
+	"log"
 	"time"
+
 	"golang.org/x/net/context"
 	api "git.circuitco.de/self/greyhouse/api"
 	"git.circuitco.de/self/greyhouse/node"
@@ -13,6 +15,46 @@ type ClientHost struct {
 	Presence *api.PresenceClient
 	Person *api.PersonClient
 	Rules *api.RulesClient
+}
+
+type ModuleConfig struct {
+	Name string
+	Args []string
+}
+
+var chost *ClientHost
+
+func LoadModules(moduleConfig []ModuleConfig) ([]GreyhouseClientModule, error) {
+	loaded := make([]GreyhouseClientModule, 0)
+	var err error
+	for _, config := range moduleConfig {
+		var module GreyhouseClientModule
+		switch config.Name {
+		case "gpio":
+			gpio := NewGpioWatcher(23)
+			module = &gpio
+		case "video":
+			video := NewV4lStreamer()
+			module = &video
+		default:
+			log.Panicf("Module name not recognised: %s", config.Name)
+		}
+		if module != nil {
+			err = module.Init()
+			if err != nil {
+				for _, l := range loaded {
+					l.Shutdown()
+				}
+				return nil, err
+			}
+			loaded = append(loaded, module)
+		}
+	}
+	return loaded, nil
+}
+
+func SetClientHost(_chost *ClientHost) {
+	chost = _chost
 }
 
 func (c ClientHost) GetContext() context.Context {
@@ -28,7 +70,7 @@ type GreyhouseClientModule interface {
 	Init() error
 	// Force some new clients on this module, due to connection state change or otherwise
 	// can be nil!
-	Update(*ClientHost)
+	Update()
 	// Called once to find out if this module needs per-second processing
 	CanTick() bool
 	// Called once per second if canTick returns true
