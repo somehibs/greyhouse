@@ -2,6 +2,9 @@ package recognise
 
 // lifted from gococo and adapted from cli to api
 import (
+	tf "github.com/tensorflow/tensorflow/tensorflow/go"
+	"github.com/tensorflow/tensorflow/tensorflow/go/op"
+
 	"bufio"
 	//"bytes"
 	"fmt"
@@ -19,8 +22,6 @@ import (
 	//"golang.org/x/image/font/basicfont"
 	//"golang.org/x/image/math/fixed"
 
-	tf "github.com/tensorflow/tensorflow/tensorflow/go"
-	"github.com/tensorflow/tensorflow/tensorflow/go/op"
 )
 
 // Global labels array

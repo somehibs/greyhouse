@@ -26,3 +26,4 @@ go get git.circuitco.de/self/greyhouse
 echo "updating tensorflow"
 wget https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.14.0.tar.gz
 sudo tar -C /usr/local -xzf ./libtensorflow-cpu-linux-x86_64-1.14.0.tar.gz
+rm libtensorflow-cpu-linux-*.tar.gz*
