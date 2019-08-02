@@ -11,6 +11,7 @@ import (
 
 	api "git.circuitco.de/self/greyhouse/api"
 	"git.circuitco.de/self/greyhouse/node"
+	"git.circuitco.de/self/greyhouse/recognise"
 )
 
 type PresenceCallback interface {
@@ -37,15 +38,19 @@ type PresenceService struct {
 	phonePresence []PresenceEvent
 
 	callbacks []PresenceCallback
+
+	recognise recognise.Recogniser
 }
 
 func NewService(nodeService *node.NodeService) PresenceService {
 	log.Print("Starting presence service...")
+	recogniser := recognise.NewRecogniser("recognise/models")
 	presence := PresenceService{
 		nodeService,
 		map[api.Room][]PresenceEvent{},
 		make([]PresenceEvent, 0),
 		make([]PresenceCallback, 0),
+		recogniser,
 	}
 	return presence
 }
@@ -63,7 +68,7 @@ func (ps *PresenceService) RemoveCallback(removalCallback PresenceCallback) {
 }
 
 func (ps *PresenceService) Image(ctx context.Context, update *api.ImageUpdate) (*api.PresenceUpdateReply, error) {
-	return nil, nil
+	return &api.PresenceUpdateReply{}, nil
 }
 
 func (ps *PresenceService) Update(ctx context.Context, update *api.PresenceUpdate) (*api.PresenceUpdateReply, error) {

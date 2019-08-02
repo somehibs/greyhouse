@@ -26,7 +26,7 @@ func New(ruleService *RuleService, presenceService *presence.PresenceService) Ho
 	log.Print("Starting house...")
 	house := House{Rooms: map[api.Room]Room{}, rules: ruleService, presence: presenceService, leavingRoom: map[api.Room]int{}, enteringRoom: map[api.Room]int{}}
 	presenceService.AddCallback(house)
-	hueBridge := thirdparty.NewHueBridge("192.168.0.10")
+	//hueBridge := thirdparty.NewHueBridge("192.168.0.10")
 	house.Rooms[api.Room_LOUNGE] = Room{
 		Lights: []thirdparty.Light{
 			//hueBridge.NewLight("lounge front"),
@@ -35,7 +35,7 @@ func New(ruleService *RuleService, presenceService *presence.PresenceService) Ho
 	}
 	house.Rooms[api.Room_STUDY] = Room{
 		Lights: []thirdparty.Light{
-			hueBridge.NewLight("study"),
+//			hueBridge.NewLight("study"),
 		},
 	}
 	house.Rooms[api.Room_BEDROOM] = Room{
