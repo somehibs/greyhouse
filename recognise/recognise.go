@@ -53,7 +53,7 @@ func loadInference(dataDir string) *tf.Graph {
 	return graph
 }
 
-func (r Recogniser) recogniseImage(img []byte) {
+func (r Recogniser) RecogniseImage(img []byte) []Object {
 	// Create a session for inference over graph.
 	session, err := tf.NewSession(r.graph, nil)
 	if err != nil {
@@ -91,26 +91,26 @@ func (r Recogniser) recogniseImage(img []byte) {
 		log.Fatal(err)
 	}
 
-	// Outputs
+	ret := []Object{}
 	probabilities := output[1].Value().([][]float32)[0]
-	//classes := output[2].Value().([][]float32)[0]
+	classes := output[2].Value().([][]float32)[0]
 	//boxes := output[0].Value().([][][]float32)[0]
 
-	// Draw a box around the objects
-	curObj := 0
-
-	// 0.4 is an arbitrary threshold, below this the results get a bit random
-	for probabilities[curObj] > 0.4 {
-//		x1 := float32(img.Bounds().Max.X) * boxes[curObj][1]
-//		x2 := float32(img.Bounds().Max.X) * boxes[curObj][3]
-//		y1 := float32(img.Bounds().Max.Y) * boxes[curObj][0]
-//		y2 := float32(img.Bounds().Max.Y) * boxes[curObj][2]
-
-//		Rect(img, int(x1), int(y1), int(x2), int(y2), 4, colornames.Map[colornames.Names[int(classes[curObj])]])
-		//addLabel(img, int(x1), int(y1), int(classes[curObj]), getLabel(curObj, probabilities, classes))
-
-		curObj++
+	for i, probability := range probabilities {
+		if probability < 0.4 {
+			log.Print("Ignoring item with <.4 confidence")
+			continue
+		}
+		obj := Object{probability, r.labels[int(classes[i])]}
+		ret = append(ret, obj)
 	}
+	return ret
+}
+
+type Object struct {
+	probability float32
+	class string
+	//boundingBox []float32
 }
 
 // TENSOR UTILITY FUNCTIONS

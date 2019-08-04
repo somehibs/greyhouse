@@ -8,25 +8,28 @@ import (
 	api "git.circuitco.de/self/greyhouse/api"
 
 	"github.com/korandiz/v4l"
-
-	"git.circuitco.de/self/greyhouse/recognise"
 )
+
+func FourCC(cc []byte) uint32 {
+	log.Printf("Trying to check byte array: %+v", cc)
+	return u32(cc)
+}
+
+func u32(b []byte) uint32 {
+	return uint32(b[0]) | uint32(b[1])<<8 | uint32(b[2])<<16 | uint32(b[3])<<24
+}
 
 type V4lStreamer struct {
 	device *v4l.Device
 	lastErr error
 	lastUpload *time.Time
-	recogniser *recognise.Recogniser
 }
 
 func NewV4lStreamer() V4lStreamer {
-	return V4lStreamer{nil, nil, nil, nil}
+	return V4lStreamer{nil, nil, nil}
 }
 
 func (s *V4lStreamer) Init() error {
-	// load up tensorflow, fuck it, why not
-	recogniser := recognise.NewRecogniser("model")
-	s.recogniser = &recogniser
 	// Check for V4L devices
 	devices := v4l.FindDevices()
 	if len(devices) > 0 {
@@ -40,20 +43,26 @@ func (s *V4lStreamer) Init() error {
 			return err
 		}
 		// Check device config
-		_, err = device.GetConfig()
+		gcf, err := device.GetConfig()
 		if err != nil {
 			log.Printf("Err fetching device config: %+v", err)
 			return err
 		}
-		//log.Printf("gcf: %+v", gcf)
-		if false {
+		log.Printf("gcf: %+v", gcf)
+		const yuyv_h264 = 875967048
+		if gcf.Format == yuyv_h264 {
 			// TODO: make GetConfig empty work
 			cfg, err := device.ListConfigs()
 			if err != nil {
 				log.Printf("Err listing device config: %+v", err)
-				return err
+				// manually set the device config to what we want
+				err := device.SetConfig(v4l.DeviceConfig{Width: 480, Height: 640, Format: FourCC([]byte{'M','J','P','G'}), FPS: v4l.Frac{10, 1}})
+				if err != nil {
+					log.Printf("Failed to set config: %s", err)
+				}
+			} else {
+				log.Printf("Config available: %+v", cfg)
 			}
-			log.Printf("Config available: %+v", cfg)
 		} else {
 			// v4l is already running, what's the config?
 			bufferInfo, err := device.BufferInfo()

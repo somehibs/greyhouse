@@ -68,6 +68,15 @@ func (ps *PresenceService) RemoveCallback(removalCallback PresenceCallback) {
 }
 
 func (ps *PresenceService) Image(ctx context.Context, update *api.ImageUpdate) (*api.PresenceUpdateReply, error) {
+	f, err := os.Create("updatedImage.jpg")
+	if err == nil {
+		f.Write(update.Image)
+	}
+	start := time.Now()
+	found := ps.recognise.RecogniseImage(update.Image)
+	end := time.Now()
+	log.Printf("Recognise time: %s", end.Sub(start)/time.Millisecond)
+	log.Printf("Found: %+v", found)
 	return &api.PresenceUpdateReply{}, nil
 }
 
