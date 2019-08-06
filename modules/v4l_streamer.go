@@ -33,7 +33,7 @@ func NewV4lStreamer() V4lStreamer {
 }
 
 func (s *V4lStreamer) Init(config ModuleConfig) error {
-	if (config.Args["DisableUploads"]).(bool) {
+	if config.Args["DisableUploads"] != nil && (config.Args["DisableUploads"]).(bool) {
 		s.UploadsEnabled = false
 	}
 	// Check for V4L devices
@@ -154,6 +154,12 @@ func (s *V4lStreamer) Update() {
 		s.Throttle -= 1
 		return
 	}
+	if (s.CanTick()) {
+		s.SendFrame()
+	}
+}
+
+func (s *V4lStreamer) SendFrame() {
 	s.device.TurnOff()
 	s.device.TurnOn()
 	frame, t, err := s.CaptureFrame()
@@ -168,9 +174,11 @@ func (s *V4lStreamer) clearError() {
 	s.lastErr = nil
 }
 
-func (s *V4lStreamer) CanTick() bool { return true }
+func (s *V4lStreamer) CanTick() bool { return s.UploadsEnabled }
 func (s *V4lStreamer) Tick() error {
 	defer s.clearError()
-	s.Update()
+	if (s.CanTick()) {
+		s.SendFrame()
+	}
 	return s.lastErr
 }
