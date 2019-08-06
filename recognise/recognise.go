@@ -98,7 +98,6 @@ func (r Recogniser) RecogniseImage(img []byte) []Object {
 
 	for i, probability := range probabilities {
 		if probability < 0.4 {
-			log.Print("Ignoring item with <.4 confidence")
 			continue
 		}
 		obj := Object{probability, r.labels[int(classes[i])]}
@@ -108,8 +107,8 @@ func (r Recogniser) RecogniseImage(img []byte) []Object {
 }
 
 type Object struct {
-	probability float32
-	class string
+	Probability float32
+	Class string
 	//boundingBox []float32
 }
 

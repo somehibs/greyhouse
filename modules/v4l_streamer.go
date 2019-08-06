@@ -23,10 +23,11 @@ type V4lStreamer struct {
 	device *v4l.Device
 	lastErr error
 	lastUpload *time.Time
+	Throttle int32
 }
 
 func NewV4lStreamer() V4lStreamer {
-	return V4lStreamer{nil, nil, nil}
+	return V4lStreamer{nil, nil, nil, 0}
 }
 
 func (s *V4lStreamer) Init() error {
@@ -56,7 +57,7 @@ func (s *V4lStreamer) Init() error {
 			if err != nil {
 				log.Printf("Err listing device config: %+v", err)
 				// manually set the device config to what we want
-				err := device.SetConfig(v4l.DeviceConfig{Width: 480, Height: 640, Format: FourCC([]byte{'M','J','P','G'}), FPS: v4l.Frac{10, 1}})
+				err := device.SetConfig(v4l.DeviceConfig{Width: 640, Height: 480, Format: FourCC([]byte{'M','J','P','G'}), FPS: v4l.Frac{10, 1}})
 				if err != nil {
 					log.Printf("Failed to set config: %s", err)
 				}
@@ -101,7 +102,7 @@ func (s *V4lStreamer) Shutdown() {
 	}
 }
 
-func (watch *V4lStreamer) writeUpdate(t time.Time, img *v4l.Buffer) {
+func (s *V4lStreamer) writeUpdate(t time.Time, img *v4l.Buffer) {
 	if chost == nil {
 		log.Print("Cannot report image frame to empty chost")
 		return
@@ -116,26 +117,39 @@ func (watch *V4lStreamer) writeUpdate(t time.Time, img *v4l.Buffer) {
 	//	PeopleDetected: int32(peopleDetected),
 	//}
 	start := time.Now()
-	_, watch.lastErr = (*chost.Presence).Image(ctx, &update)
+	if chost == nil {
+		return
+	}
+	reply, err := (*chost.Presence).Image(ctx, &update)
+	s.lastErr = err
+	if reply.Throttle != 0 {
+		// Throttled for n seconds
+		s.Throttle = reply.Throttle
+	}
 	end := time.Now()
 	log.Printf("Uploading took %s", end.Sub(start))
 }
 
 func (s *V4lStreamer) Update() {
+	if s.Throttle != 0 {
+		s.Throttle -= 1
+		return
+	}
 	frame, t, err := s.CaptureFrame()
 	if err != nil {
-		log.Panicf("Cannot capture frame %+v", err)
+		log.Printf("Cannot capture frame %+v", err)
+		return
 	}
 	s.writeUpdate(t, frame)
 }
 
-func (watch *V4lStreamer) clearError() {
-	watch.lastErr = nil
+func (s *V4lStreamer) clearError() {
+	s.lastErr = nil
 }
 
-func (watch *V4lStreamer) CanTick() bool { return true }
-func (watch *V4lStreamer) Tick() error {
-	defer watch.clearError()
-	watch.Update()
-	return watch.lastErr
+func (s *V4lStreamer) CanTick() bool { return true }
+func (s *V4lStreamer) Tick() error {
+	defer s.clearError()
+	s.Update()
+	return s.lastErr
 }

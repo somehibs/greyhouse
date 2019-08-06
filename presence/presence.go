@@ -39,6 +39,7 @@ type PresenceService struct {
 
 	callbacks []PresenceCallback
 
+	recognising map[api.Room]bool
 	recognise recognise.Recogniser
 }
 
@@ -50,6 +51,7 @@ func NewService(nodeService *node.NodeService) PresenceService {
 		map[api.Room][]PresenceEvent{},
 		make([]PresenceEvent, 0),
 		make([]PresenceCallback, 0),
+		map[api.Room]bool{},
 		recogniser,
 	}
 	return presence
@@ -67,17 +69,38 @@ func (ps *PresenceService) RemoveCallback(removalCallback PresenceCallback) {
 	}
 }
 
+var throttle = int32(3)
+
 func (ps *PresenceService) Image(ctx context.Context, update *api.ImageUpdate) (*api.PresenceUpdateReply, error) {
-	f, err := os.Create("updatedImage.jpg")
-	if err == nil {
-		f.Write(update.Image)
+	node := ps.nodes.GetNode(ctx)
+	go ps.recogniseImage(node, update)
+	return &api.PresenceUpdateReply{Throttle: throttle}, nil
+}
+
+func (ps *PresenceService) recogniseImage(node *node.Node, update *api.ImageUpdate) {
+	// Given a node, who is in this room?
+	// If the room is black, or there's no matches, there's nothing to be done.
+	if ps.recognising[node.Room] {
+		log.Printf("Throttling room")
+		return
 	}
+	ps.recognising[node.Room] = true
 	start := time.Now()
 	found := ps.recognise.RecogniseImage(update.Image)
 	end := time.Now()
 	log.Printf("Recognise time: %s", end.Sub(start)/time.Millisecond)
 	log.Printf("Found: %+v", found)
-	return &api.PresenceUpdateReply{}, nil
+	for _, match := range found {
+		if match.Class == "person" || match.Class == "cat" {
+			if match.Class == "person" {
+				// Yep, someone's in here
+			} else {
+				// Stricter recognition requirements
+			}
+		}
+		// who is in here?
+	}
+	ps.recognising[node.Room] = false
 }
 
 func (ps *PresenceService) Update(ctx context.Context, update *api.PresenceUpdate) (*api.PresenceUpdateReply, error) {
