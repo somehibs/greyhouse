@@ -61,6 +61,7 @@ func (s *V4lStreamer) Init() error {
 				if err != nil {
 					log.Printf("Failed to set config: %s", err)
 				}
+				device.TurnOn()
 			} else {
 				log.Printf("Config available: %+v", cfg)
 			}
@@ -122,7 +123,7 @@ func (s *V4lStreamer) writeUpdate(t time.Time, img *v4l.Buffer) {
 	}
 	reply, err := (*chost.Presence).Image(ctx, &update)
 	s.lastErr = err
-	if reply.Throttle != 0 {
+	if err == nil && reply.Throttle != 0 {
 		// Throttled for n seconds
 		s.Throttle = reply.Throttle
 	}
