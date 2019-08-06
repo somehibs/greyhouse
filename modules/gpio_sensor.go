@@ -20,11 +20,14 @@ type GpioWatcher struct {
 	lastErr error
 }
 
-func NewGpioWatcher(pin int16) GpioWatcher {
-	return GpioWatcher{pin, nil, true, true, nil}
+func NewGpioWatcher() GpioWatcher {
+	return GpioWatcher{23, nil, true, true, nil}
 }
 
-func (watch *GpioWatcher) Init() error {
+func (watch *GpioWatcher) Init(config ModuleConfig) error {
+	if config.Args["Pin"] != nil {
+		watch.pinId = int16((config.Args["Pin"]).(float64))
+	}
 	err := gpio.Open()
 	if err != nil {
 		return err

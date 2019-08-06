@@ -4,6 +4,7 @@ import (
 	"log"
 	"errors"
 	"time"
+	"net/http"
 
 	api "git.circuitco.de/self/greyhouse/api"
 
@@ -24,13 +25,17 @@ type V4lStreamer struct {
 	lastErr error
 	lastUpload *time.Time
 	Throttle int32
+	UploadsEnabled bool
 }
 
 func NewV4lStreamer() V4lStreamer {
-	return V4lStreamer{nil, nil, nil, 0}
+	return V4lStreamer{nil, nil, nil, 0, true}
 }
 
-func (s *V4lStreamer) Init() error {
+func (s *V4lStreamer) Init(config ModuleConfig) error {
+	if (config.Args["DisableUploads"]).(bool) {
+		s.UploadsEnabled = false
+	}
 	// Check for V4L devices
 	devices := v4l.FindDevices()
 	if len(devices) > 0 {
@@ -61,7 +66,9 @@ func (s *V4lStreamer) Init() error {
 				if err != nil {
 					log.Printf("Failed to set config: %s", err)
 				}
-				device.TurnOn()
+				err = device.TurnOn()
+				s.listenHttp()
+				return err
 			} else {
 				log.Printf("Config available: %+v", cfg)
 			}
@@ -77,6 +84,7 @@ func (s *V4lStreamer) Init() error {
 			if err != nil {
 				return err
 			}
+			s.listenHttp()
 			return err
 		}
 	} else {
@@ -84,6 +92,16 @@ func (s *V4lStreamer) Init() error {
 		return errors.New("v4l_no_devices")
 	}
 	return nil
+}
+
+func (s *V4lStreamer) listenHttp() {
+	http.HandleFunc("/", func (w http.ResponseWriter, r *http.Request) {
+		b, e := s.device.Capture()
+		if e == nil {
+			w.Write(b.Source())
+		}
+	})
+	go http.ListenAndServe(":80", nil)
 }
 
 func (s *V4lStreamer) CaptureFrame() (*v4l.Buffer, time.Time, error) {
@@ -136,6 +154,8 @@ func (s *V4lStreamer) Update() {
 		s.Throttle -= 1
 		return
 	}
+	s.device.TurnOff()
+	s.device.TurnOn()
 	frame, t, err := s.CaptureFrame()
 	if err != nil {
 		log.Printf("Cannot capture frame %+v", err)

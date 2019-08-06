@@ -19,7 +19,7 @@ type ClientHost struct {
 
 type ModuleConfig struct {
 	Name string
-	Args []string
+	Args map[string]interface{}
 }
 
 var chost *ClientHost
@@ -31,7 +31,7 @@ func LoadModules(moduleConfig []ModuleConfig) ([]GreyhouseClientModule, error) {
 		var module GreyhouseClientModule
 		switch config.Name {
 		case "gpio":
-			gpio := NewGpioWatcher(23)
+			gpio := NewGpioWatcher()
 			module = &gpio
 		case "video":
 			video := NewV4lStreamer()
@@ -40,7 +40,7 @@ func LoadModules(moduleConfig []ModuleConfig) ([]GreyhouseClientModule, error) {
 			log.Panicf("Module name not recognised: %s", config.Name)
 		}
 		if module != nil {
-			err = module.Init()
+			err = module.Init(config)
 			if err != nil {
 				for _, l := range loaded {
 					l.Shutdown()
@@ -63,11 +63,10 @@ func (c ClientHost) GetContext() context.Context {
 }
 
 type GreyhouseClientModule interface {
-	// set some config values. keys must be ints exposed by the module to avoid string comparisons or stupid shit like that
-	//SetString(int, string) error
-	//SetInt(int, int) error
-	// update may not have been called but all config should be finished before init is called
-	Init() error
+	// init takes a moduleconfig and starts up the component
+	// init should gracefully return errors and not panic.
+	// errors will halt the application safely
+	Init(ModuleConfig) error
 	// Force some new clients on this module, due to connection state change or otherwise
 	// can be nil!
 	Update()
@@ -79,3 +78,4 @@ type GreyhouseClientModule interface {
 	// Shutdown is called when the application is closing for some reason
 	Shutdown()
 }
+
