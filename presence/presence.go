@@ -89,8 +89,7 @@ func (ps *PresenceService) recogniseImage(node *node.Node, update *api.ImageUpda
 	found := ps.recognise.RecogniseImage(update.Image)
 	end := time.Now()
 	diff := end.Sub(start)
-	maybeThrottle := int32(float64(diff/time.Millisecond))/1000
-	log.Printf("Maybe throttle: %d", maybeThrottle)
+	throttle = (int32(float64(diff/time.Millisecond))/1000)+1
 	log.Printf("Recognise time: %s", diff/time.Millisecond)
 	log.Printf("Found: %+v", found)
 	for _, match := range found {
