@@ -15,6 +15,8 @@ echo 'built'
 if [ ! -z $1 ]; then
 	echo 'copying to clients'
 	rsync bin/greyserver $CLIENT:~/
+	ssh $CLIENT mkdir web
+	rsync -r web/tpl/ $CLIENT:~/web/tpl/
 	echo 'copy complete'
 else
 	echo "say './build.sh hostname' for rsync"

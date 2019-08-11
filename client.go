@@ -49,6 +49,7 @@ var bindAddr = "0.0.0.0:9991" // not implemented
 var thisVersion = version.CurrentVersion()
 var loadedModules = make([]modules.GreyhouseClientModule, 0)
 var tickModules = make([]modules.GreyhouseClientModule, 0)
+var moduleNames = make([]string, 0)
 
 func loadModules(moduleConfig []modules.ModuleConfig) error {
 	log.Print("loading modules")
@@ -56,6 +57,10 @@ func loadModules(moduleConfig []modules.ModuleConfig) error {
 	loadedModules, err = modules.LoadModules(moduleConfig)
 	if err != nil {
 		return err
+	}
+	moduleNames = make([]string, 0)
+	for _, cfg := range moduleConfig {
+		moduleNames = append(moduleNames, cfg.Name)
 	}
 	for _, module := range loadedModules {
 		if module.CanTick() {
@@ -155,6 +160,7 @@ func main() {
 			ClientAddress: config.NodeAddress,
 			Room: config.Room,
 			Version: &thisVersion,
+			Modules: moduleNames,
 		})
 		if e == nil {
 			// Perfect, we connected ok

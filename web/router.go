@@ -40,16 +40,18 @@ type CamView struct {
 func (s *HttpService) camMain(w http.ResponseWriter, r *http.Request) {
 	loadTemplates()
 	view := CamView{}
-	view.Cameras = make([]CamInfo, len(s.nodes.Nodes)+1)
-	i := 0
+	view.Cameras = make([]CamInfo, 0)
 	for nodeName, node := range s.nodes.Nodes {
+		if !node.HasModule("video") {
+			log.Printf("Skipping node, missing video: %s", nodeName)
+			continue
+		}
 		if nodeName == "bedroom" {
 			//continue
 		}
-		view.Cameras[i] = CamInfo{"http://"+node.Address, false, nodeName}
-		i += 1
+		view.Cameras = append(view.Cameras, CamInfo{"http://"+node.Address, false, nodeName})
 	}
-	view.Cameras[len(view.Cameras)-1] = CamInfo{"http://192.168.0.25", true, "printer"}
+	view.Cameras = append(view.Cameras, CamInfo{"http://192.168.0.25", true, "printer"})
 	log.Printf("Cameras: %+v", view)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	renderTemplateImpl(w, "cam", &view)

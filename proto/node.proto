@@ -22,6 +22,7 @@ message NodeMetadata {
 	Room room = 2;
 	NodeVersion version = 3;
 	string clientAddress = 4;
+	repeated string modules = 5;
 }
 
 // NodeKey is a wrapper for a string that contains key information.

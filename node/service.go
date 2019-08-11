@@ -19,6 +19,16 @@ type Node struct {
 	Key string
 	Room api.Room
 	LastSeen time.Time
+	Modules []string
+}
+
+func (n Node) HasModule(_module string) bool {
+	for _, module := range n.Modules {
+		if _module == module {
+			return true
+		}
+	}
+	return false
 }
 
 type NodeService struct {
@@ -51,6 +61,7 @@ func (ns NodeService) Register(ctx context.Context, metadata *api.NodeMetadata) 
 		Room: metadata.Room,
 		LastSeen: time.Now(),
 		Key: randomKey(25),
+		Modules: metadata.Modules,
 	}
 	log.Printf("Register called: %+v\n", metadata)
 	log.Printf("Stored: %+v\n", ns.Nodes[metadata.Identifier])

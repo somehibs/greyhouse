@@ -27,7 +27,7 @@ hlslCam(cam, {{.ImgSrc}});
 setInterval(function(){
 	var cam = document.getElementById('{{.Name}}');
 	cam.src = {{.ImgSrc}}+"?time="+new Date().getTime();
-}, 1000);
+}, 1500);
 {{end}}
 {{end}}
 </script>
