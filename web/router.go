@@ -51,6 +51,7 @@ func (s *HttpService) camMain(w http.ResponseWriter, r *http.Request) {
 	}
 	view.Cameras[len(view.Cameras)-1] = CamInfo{"http://192.168.0.25", true, "printer"}
 	log.Printf("Cameras: %+v", view)
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	renderTemplateImpl(w, "cam", &view)
 }
 
