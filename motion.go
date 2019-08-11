@@ -44,10 +44,10 @@ func main() {
 
 	f.Close()
 
-	plots := []string{"KITCHEN", "STUDY"}
-	plot.SuggestedTicks = int(float64(len(lines))/float64(10))
+	plots := []string{"KITCHEN", "STUDY", "BEDROOM", "LOUNGE"}
+	plot.SuggestedTicks = 200
 	realPlot, err := plot.New()
-	realPlot.Title.Text = "Motion plots"
+	realPlot.Title.Text = "Motion plots - BLACK STUDY, KITCHEN RED, BEDROOM YELLOW, LOUNGE BLUE"
 	realPlot.X.Label.Text = "Time"
 	realPlot.X.Tick.Marker = plot.TimeTicks{Format: "15:04:05"}
 	realPlot.Y.Label.Text = "Triggers"
@@ -57,8 +57,8 @@ func main() {
 	for _, plot := range plots {
 		appendPlot(realPlot, lines, plot)
 	}
-	cent := 5000*vg.Centimeter
-	err = realPlot.Save(cent, 3*vg.Centimeter, "motion.svg")
+	cent := 1000*vg.Centimeter
+	err = realPlot.Save(cent, 10*vg.Centimeter, "motion.svg")
 	pan(err)
 	//generateHtml(plots)
 }
@@ -87,12 +87,12 @@ func appendPlot(p *plot.Plot, lines [][]string, room string) {
 		timeStr := lines[i][0]
 		state := lines[i][3]
 		stateInt, err  := strconv.Atoi(state)
-		if lines[i][1] != room {
-			stateInt = 0
-		}
 		if err != nil {
 			log.Printf("Could not parse state: %s", state)
 			continue
+		}
+		if lines[i][1] != room {
+			stateInt = 0
 		}
 		date, err := time.Parse(presence.MotionTimeFormat, timeStr)
 		if err != nil {
@@ -108,6 +108,12 @@ func appendPlot(p *plot.Plot, lines [][]string, room string) {
 	if room == "KITCHEN" {
 		log.Print("Changing line style to something more paletable")
 		plotLine.LineStyle = draw.LineStyle{Width: vg.Points(1), Dashes: []vg.Length{}, DashOffs: 0, Color: color.RGBA{255,0,0,255}}
+	} else if room == "BEDROOM" {
+		log.Print("Changing line style to something more paletable")
+		plotLine.LineStyle = draw.LineStyle{Width: vg.Points(1), Dashes: []vg.Length{}, DashOffs: 0, Color: color.RGBA{255,255,0,255}}
+	} else if room == "LOUNGE" {
+		log.Print("Changing line style to something more paletable")
+		plotLine.LineStyle = draw.LineStyle{Width: vg.Points(1), Dashes: []vg.Length{}, DashOffs: 0, Color: color.RGBA{255,0,255,255}}
 	}
 
 	p.Add(plotLine)//, plotPoints)

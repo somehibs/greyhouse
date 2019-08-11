@@ -32,6 +32,14 @@ func NewV4lStreamer() V4lStreamer {
 	return V4lStreamer{nil, nil, nil, 0, true}
 }
 
+func (s *V4lStreamer) restarter() {
+	for ;; {
+		time.Sleep(1*time.Second)
+		s.device.TurnOff()
+		s.device.TurnOn(true)
+	}
+}
+
 func (s *V4lStreamer) Init(config ModuleConfig) error {
 	if config.Args["DisableUploads"] != nil && (config.Args["DisableUploads"]).(bool) {
 		s.UploadsEnabled = false
@@ -56,37 +64,23 @@ func (s *V4lStreamer) Init(config ModuleConfig) error {
 		}
 		log.Printf("gcf: %+v", gcf)
 		const yuyv_h264 = 875967048
-		if gcf.Format == yuyv_h264 {
 			// TODO: make GetConfig empty work
 			cfg, err := device.ListConfigs()
 			if err != nil {
 				log.Printf("Err listing device config: %+v", err)
 				// manually set the device config to what we want
-				err := device.SetConfig(v4l.DeviceConfig{Width: 640, Height: 480, Format: FourCC([]byte{'M','J','P','G'}), FPS: v4l.Frac{10, 1}})
+				err := device.SetConfig(v4l.DeviceConfig{Width: 640, Height: 480, Format: FourCC([]byte{'M','J','P','G'}), FPS: v4l.Frac{15, 1}})
 				if err != nil {
 					log.Printf("Failed to set config: %s", err)
 				}
-				err = device.TurnOn()
+		gcf, err := device.GetConfig()
+		log.Printf("gcf: %+v", gcf)
+				err = device.TurnOn(false)
 				s.listenHttp()
 				return err
 			} else {
 				log.Printf("Config available: %+v", cfg)
 			}
-		} else {
-			// v4l is already running, what's the config?
-			bufferInfo, err := device.BufferInfo()
-			if err != nil {
-				return err
-			}
-			log.Printf("Buffer info: %+v", bufferInfo)
-			// enable our connection to the device
-			err = device.TurnOn()
-			if err != nil {
-				return err
-			}
-			s.listenHttp()
-			return err
-		}
 	} else {
 		log.Printf("Could not find any devices for streamer.")
 		return errors.New("v4l_no_devices")
@@ -96,6 +90,8 @@ func (s *V4lStreamer) Init(config ModuleConfig) error {
 
 func (s *V4lStreamer) listenHttp() {
 	http.HandleFunc("/", func (w http.ResponseWriter, r *http.Request) {
+	s.device.TurnOff()
+	s.device.TurnOn(true)
 		b, e := s.device.Capture()
 		if e == nil {
 			w.Write(b.Source())
@@ -161,7 +157,7 @@ func (s *V4lStreamer) Update() {
 
 func (s *V4lStreamer) SendFrame() {
 	s.device.TurnOff()
-	s.device.TurnOn()
+	s.device.TurnOn(true)
 	frame, t, err := s.CaptureFrame()
 	if err != nil {
 		log.Printf("Cannot capture frame %+v", err)

@@ -1,3 +1,5 @@
+// +build !arm
+
 package recognise
 
 // lifted from gococo and adapted from cli to api
@@ -104,12 +106,6 @@ func (r Recogniser) RecogniseImage(img []byte) []Object {
 		ret = append(ret, obj)
 	}
 	return ret
-}
-
-type Object struct {
-	Probability float32
-	Class string
-	//boundingBox []float32
 }
 
 // TENSOR UTILITY FUNCTIONS
