@@ -90,12 +90,12 @@ func (s *V4lStreamer) Init(config ModuleConfig) error {
 
 func (s *V4lStreamer) listenHttp() {
 	http.HandleFunc("/", func (w http.ResponseWriter, r *http.Request) {
-	s.device.TurnOff()
-	s.device.TurnOn(true)
+		s.device.TurnOn(true)
 		b, e := s.device.Capture()
 		if e == nil {
 			w.Write(b.Source())
 		}
+		s.device.TurnOff()
 	})
 	go http.ListenAndServe(":80", nil)
 }

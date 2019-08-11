@@ -53,7 +53,7 @@ func main() {
 	log.Printf("Made a house %s", houseService)
 
 	log.Print("Starting public webserver")
-	web.Route(":9998")
+	web.Route(":9998", &nodeService)
 
 	log.Print("Starting house tick thread.")
 	houseService.StartTicking()

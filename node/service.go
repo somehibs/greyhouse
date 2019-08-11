@@ -7,6 +7,7 @@ import (
 	"errors"
 	"strings"
 	"golang.org/x/net/context"
+	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/metadata"
 
 	api "git.circuitco.de/self/greyhouse/api"
@@ -21,11 +22,11 @@ type Node struct {
 }
 
 type NodeService struct {
-	nodes map[string]*Node
+	Nodes map[string]*Node
 }
 
 func NewService() NodeService {
-	return NodeService{nodes: map[string]*Node{}}
+	return NodeService{Nodes: map[string]*Node{}}
 }
 
 const keyChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -38,20 +39,22 @@ func randomKey(size int) string {
 }
 
 func (ns NodeService) Register(ctx context.Context, metadata *api.NodeMetadata) (*api.NodeKey, error) {
-	if ns.nodes[metadata.Identifier] != nil {
+	if ns.Nodes[metadata.Identifier] != nil {
 		// Already identified, check key. for now just return errors
-		return &api.NodeKey{Key: ns.nodes[metadata.Identifier].Key}, nil
+		return &api.NodeKey{Key: ns.Nodes[metadata.Identifier].Key}, nil
 	}
-	ns.nodes[metadata.Identifier] = &Node{
+	p, _ := peer.FromContext(ctx)
+	clientAddress := strings.Split(p.Addr.String(), ":")[0]
+	ns.Nodes[metadata.Identifier] = &Node{
 		Name: metadata.Identifier,
-		Address: metadata.ClientAddress,
+		Address: clientAddress,
 		Room: metadata.Room,
 		LastSeen: time.Now(),
 		Key: randomKey(25),
 	}
 	log.Printf("Register called: %+v\n", metadata)
-	log.Printf("Stored: %+v\n", ns.nodes[metadata.Identifier])
-	return &api.NodeKey{Key: ns.nodes[metadata.Identifier].Key}, nil
+	log.Printf("Stored: %+v\n", ns.Nodes[metadata.Identifier])
+	return &api.NodeKey{Key: ns.Nodes[metadata.Identifier].Key}, nil
 }
 
 func AuthContext(ctx context.Context, key string) context.Context {
@@ -64,7 +67,7 @@ func (ns NodeService) GetNode(ctx context.Context) *Node {
 }
 
 func (ns NodeService) getNodeInternal(metadata map[string][]string) *Node {
-	for _, v := range ns.nodes {
+	for _, v := range ns.Nodes {
 		if strings.Compare(v.Key, metadata["node_key"][0]) == 0 {
 			return v
 		}

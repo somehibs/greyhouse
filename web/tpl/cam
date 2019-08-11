@@ -1,0 +1,33 @@
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+{{range .Cameras}}
+{{if .Hlsl}}
+<video width="630" height="480" class="videoClass" id="{{.Name}}" controls></video>
+{{else}}
+<img width="630" height="480" id="{{.Name}}" src="{{.ImgSrc}}"/>
+{{end}}
+{{end}}
+<script>
+function hlslCam(cam, host) {
+	var hls = new Hls();
+	hls.attachMedia(cam);
+	hls.on(Hls.Events.MEDIA_ATTACHED, function() {
+		console.log("Bound to " + host);
+		hls.loadSource(host+":8554/ts.m3u8");
+		hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
+			console.log("manifest parsed for "+host);
+		});
+	});
+}
+var cam = null;
+{{range .Cameras}}
+cam = document.getElementById('{{.Name}}');
+{{if .Hlsl}}
+hlslCam(cam, {{.ImgSrc}});
+{{else}}
+setInterval(function(){
+	var cam = document.getElementById('{{.Name}}');
+	cam.src = {{.ImgSrc}}+"?time="+new Date().getTime();
+}, 1000);
+{{end}}
+{{end}}
+</script>
