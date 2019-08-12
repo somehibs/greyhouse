@@ -35,13 +35,13 @@ func New(ruleService *RuleService, presenceService *presence.PresenceService) Ho
 	}
 	house.Rooms[api.Room_STUDY] = Room{
 		Lights: []thirdparty.Light{
-//			hueBridge.NewLight("study"),
+			//hueBridge.NewLight("study"),
 		},
 	}
 	house.Rooms[api.Room_BEDROOM] = Room{
-		Lights: []thirdparty.Light{},
-//			hueBridge.NewLight("bedroom")
-//		},
+		Lights: []thirdparty.Light{
+			//hueBridge.NewLight("bedroom overhead"),
+		},
 	}
 	return house
 }
@@ -93,6 +93,7 @@ func (h House) eventuallyEnterRoom(room api.Room, id int, pause int) {
 	time.Sleep(time.Duration(pause)*time.Second)
 	if h.enteringRoom[room] == id {
 		lights := h.TryGetLights(room)
+		log.Printf("wanna turn on %d lights in %+v", len(lights), room)
 		if len(lights) > 0 {
 			log.Printf("Turning on %d lights in %+v", len(lights), room)
 			for _, light := range lights {
@@ -109,7 +110,7 @@ func (h House) RoomPresenceChange(room api.Room, present int32) {
 		identifier := rand.Int()
 		h.leavingRoom[room] = 0
 		h.enteringRoom[room] = identifier
-		go h.eventuallyEnterRoom(room, identifier, 1)
+		go h.eventuallyEnterRoom(room, identifier, 2)
 	} else {
 		// ignore leaving rooms
 		identifier := rand.Int()

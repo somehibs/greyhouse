@@ -1,4 +1,4 @@
-OVERWRITE_SERVICE=1
+OVERWRITE_SERVICE=0
 REBOOT=0
 CLIENT=$1
 mkdir bin/ > /dev/null 2>&1;

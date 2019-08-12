@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 	"net/http"
+	"sync"
 
 	api "git.circuitco.de/self/greyhouse/api"
 
@@ -22,6 +23,8 @@ func u32(b []byte) uint32 {
 
 type V4lStreamer struct {
 	device *v4l.Device
+	frame sync.Mutex
+	lastFrame []byte
 	lastErr error
 	lastUpload *time.Time
 	Throttle int32
@@ -29,11 +32,11 @@ type V4lStreamer struct {
 }
 
 func NewV4lStreamer() V4lStreamer {
-	return V4lStreamer{nil, nil, nil, 0, true}
+	return V4lStreamer{nil, sync.Mutex{}, nil, nil, nil, 0, true}
 }
 
 func (s *V4lStreamer) restarter() {
-	for ;; {
+	for {
 		time.Sleep(1*time.Second)
 		s.device.TurnOff()
 		s.device.TurnOn(true)
@@ -97,24 +100,30 @@ func (s *V4lStreamer) listenHttp() {
 	server.SetKeepAlivesEnabled(false)
 	http.HandleFunc("/", func (w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
-		s.device.TurnOn(true)
-		b, e := s.device.Capture()
-		if e == nil {
-			w.Write(b.Source())
-		}
-		s.device.TurnOff()
+		log.Printf("Sending frame with size %d", len(s.lastFrame))
+		w.Write(s.lastFrame)
 	})
 	go server.ListenAndServe()
 }
 
-func (s *V4lStreamer) CaptureFrame() (*v4l.Buffer, time.Time, error) {
+func (s *V4lStreamer) CaptureFrame() ([]byte, time.Time, error) {
 	start := time.Now()
+	s.frame.Lock()
+	s.device.TurnOn(true)
 	buffer, err := s.device.Capture()
+	var bufferCopy []byte
+	if err == nil {
+		bufferCopy = make([]byte, len(buffer.Source()))
+		copy(bufferCopy, buffer.Source())
+		s.lastFrame = bufferCopy
+	}
+	s.device.TurnOff()
 	end := time.Now()
 	log.Printf("Capture time %+v", end.Sub(start))
 	log.Printf("Buf %+v", buffer)
 	log.Printf("Err %s", err)
-	return buffer, start, err
+	s.frame.Unlock()
+	return bufferCopy, start, err
 }
 
 func (s *V4lStreamer) Shutdown() {
@@ -124,7 +133,7 @@ func (s *V4lStreamer) Shutdown() {
 	}
 }
 
-func (s *V4lStreamer) writeUpdate(t time.Time, img *v4l.Buffer) {
+func (s *V4lStreamer) writeUpdate(t time.Time, img []byte) {
 	if chost == nil {
 		log.Print("Cannot report image frame to empty chost")
 		return
@@ -132,7 +141,7 @@ func (s *V4lStreamer) writeUpdate(t time.Time, img *v4l.Buffer) {
 	ctx := (*chost).GetContext()
 	update := api.ImageUpdate {
 		Time: t.Unix(),
-		Image: img.Source(),
+		Image: img,
 	}
 	//	Distance: 0,
 	//	Accuracy: 0,

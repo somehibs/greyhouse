@@ -22,15 +22,5 @@ else
 fi
 echo "Updating protoc-gen-go and greyhouse"
 go get -u github.com/golang/protobuf/protoc-gen-go
+go get -u -d gocv.io/x/gocv
 go get git.circuitco.de/self/greyhouse
-echo "updating tensorflow"
-RASPBERRYPI=true
-if [[ -z $RASPBERRYPI ]]; then
-	wget https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.14.0.tar.gz
-	sudo tar -C /usr/local -xzf ./libtensorflow-cpu-linux-x86_64-1.14.0.tar.gz
-	rm libtensorflow-cpu-linux-*.tar.gz*
-else
-	wget https://github.com/PINTO0309/Tensorflow-bin/raw/master/tensorflow-1.14.0-cp37-cp37m-linux_armv7l.whl
-	sudo pip uninstall tensorflow
-	sudo pip  -h install tensorflow*.whl
-fi
