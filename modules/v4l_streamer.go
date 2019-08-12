@@ -89,7 +89,14 @@ func (s *V4lStreamer) Init(config ModuleConfig) error {
 }
 
 func (s *V4lStreamer) listenHttp() {
+	server := &http.Server {
+		Addr: ":80",
+		ReadTimeout: 5*time.Second,
+		WriteTimeout: 5*time.Second,
+	}
+	server.SetKeepAlivesEnabled(false)
 	http.HandleFunc("/", func (w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
 		s.device.TurnOn(true)
 		b, e := s.device.Capture()
 		if e == nil {
@@ -97,7 +104,7 @@ func (s *V4lStreamer) listenHttp() {
 		}
 		s.device.TurnOff()
 	})
-	go http.ListenAndServe(":80", nil)
+	server.ListenAndServe()
 }
 
 func (s *V4lStreamer) CaptureFrame() (*v4l.Buffer, time.Time, error) {

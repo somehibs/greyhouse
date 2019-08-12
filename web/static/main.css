@@ -16,6 +16,11 @@ house {
 	margin-top: 5rem;
 }
 
+room {
+	background-color: #0f0;
+	width: 100px;
+}
+
 main {
 	margin-top: 2rem;
 }

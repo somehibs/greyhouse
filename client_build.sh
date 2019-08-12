@@ -14,7 +14,9 @@ mv client bin/greyclient
 echo 'built'
 if [ ! -z $1 ]; then
 	echo 'copying to clients'
-	rsync bin/greyclient $CLIENT:~/
+	for var in "$@"; do
+		rsync bin/greyclient $var:~/
+	done
 	echo 'copy complete'
 else
 	echo "say './build.sh hostname' for rsync"

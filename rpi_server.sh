@@ -17,6 +17,7 @@ if [ ! -z $1 ]; then
 	rsync bin/greyserver $CLIENT:~/
 	ssh $CLIENT mkdir web
 	rsync -r web/tpl/ $CLIENT:~/web/tpl/
+	rsync -r web/static/ $CLIENT:~/web/static/
 	echo 'copy complete'
 else
 	echo "say './build.sh hostname' for rsync"

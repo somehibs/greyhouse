@@ -5,6 +5,8 @@ import (
 	"log"
 	"html/template"
 
+	api "git.circuitco.de/self/greyhouse/api"
+
 	"git.circuitco.de/self/greyhouse/node"
 )
 
@@ -76,7 +78,23 @@ func loadTemplates() {
 		"web/tpl/light"))
 }
 
+type MainView struct {
+	Rooms []RoomView
+}
+
+type RoomView struct {
+	Name string
+}
+
+var renderRooms = []api.Room{api.Room_LOUNGE, api.Room_BEDROOM, api.Room_STUDY}
+
 func (s *HttpService) webMain(w http.ResponseWriter, r *http.Request) {
 	loadTemplates()
-	renderTemplate(w, "main")
+	view := MainView{make([]RoomView, 0)}
+	for _, id := range renderRooms { // id, name
+		room := RoomView{api.Room_name[int32(id)]}
+		log.Printf("Room %+v", room)
+		view.Rooms = append(view.Rooms, room)
+	}
+	renderTemplateImpl(w, "main", &view)
 }
