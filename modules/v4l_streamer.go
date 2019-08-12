@@ -104,7 +104,7 @@ func (s *V4lStreamer) listenHttp() {
 		}
 		s.device.TurnOff()
 	})
-	server.ListenAndServe()
+	go server.ListenAndServe()
 }
 
 func (s *V4lStreamer) CaptureFrame() (*v4l.Buffer, time.Time, error) {

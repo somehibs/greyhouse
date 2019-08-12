@@ -1,0 +1,20 @@
+[Unit]
+Description=Greyclient instance
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+StandardOutput=syslog+console
+StandardError=syslog+console
+WorkingDirectory=/home/cherry/
+ExecStart=/home/cherry/greyclient
+KillSignal=SIGINT
+Type=simple
+User=root
+Group=root
+Restart=always
+RestartSec=8
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

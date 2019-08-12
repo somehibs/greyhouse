@@ -25,6 +25,7 @@ type ModuleConfig struct {
 var chost *ClientHost
 
 func LoadModules(moduleConfig []ModuleConfig) ([]GreyhouseClientModule, error) {
+	log.Print("Loading %d modules from config...", len(moduleConfig))
 	loaded := make([]GreyhouseClientModule, 0)
 	var err error
 	for _, config := range moduleConfig {
@@ -40,7 +41,9 @@ func LoadModules(moduleConfig []ModuleConfig) ([]GreyhouseClientModule, error) {
 			log.Panicf("Module name not recognised: %s", config.Name)
 		}
 		if module != nil {
+			log.Printf("Starting module %s", config)
 			err = module.Init(config)
+			log.Printf("Started module %s", config)
 			if err != nil {
 				for _, l := range loaded {
 					l.Shutdown()
@@ -50,6 +53,7 @@ func LoadModules(moduleConfig []ModuleConfig) ([]GreyhouseClientModule, error) {
 			loaded = append(loaded, module)
 		}
 	}
+	log.Printf("Loaded %d modules.", loaded)
 	return loaded, nil
 }
 
