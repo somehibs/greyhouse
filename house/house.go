@@ -2,12 +2,12 @@ package house
 
 import (
 	"git.circuitco.de/self/greyhouse/log"
-	"time"
 	"math/rand"
+	"time"
 
-	"git.circuitco.de/self/greyhouse/thirdparty"
-	"git.circuitco.de/self/greyhouse/presence"
 	api "git.circuitco.de/self/greyhouse/api"
+	"git.circuitco.de/self/greyhouse/presence"
+	"git.circuitco.de/self/greyhouse/thirdparty"
 )
 
 type House struct {

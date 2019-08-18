@@ -1,16 +1,33 @@
 OVERWRITE_SERVICE=0
 REBOOT=0
 CLIENT=$1
+CBUILD=1
+sudo apt install gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
 mkdir bin/ > /dev/null 2>&1;
 echo 'building...';
 export GOOS=linux
 export GOARCH=arm
 export GOARM=5
-go build client.go
+if [[ $CBUILD -eq 1 ]]; then
+	export CC=arm-linux-gnueabihf-gcc
+	export CXX=arm-linux-gnueabihf-g++
+	export PKG_CONFIG="no"
+	export CGO_ENABLED=1
+	LIBROOT="/home/user/go/src/git.circuitco.de/self/greyhouse/rpi_libs/"
+	export CGO_CPPFLAGS="-I$LIBROOT/include"
+	LDEPS="-lz -ljpeg -lpng16 -ltiff -ldc1394 -lavcodec -lavformat"
+	export CGO_LDFLAGS="-L$LIBROOT/lib -L$LIBROOT/sharelib -lopencv_core -lopencv_imgproc -lopencv_imgcodecs -lopencv_videoio $LDEPS"
+	go build -tags customenv client.go 2>buildlog
+else
+	go build client.go 2>buildlog
+fi
 er=$?
 if [ $er -ne 0 ]; then
 	echo "failed to build"
-	exit $er
+
+	# Look for the desired lines
+	python procdeps.py
+	exit 1
 fi
 mv client bin/greyclient
 echo 'built'

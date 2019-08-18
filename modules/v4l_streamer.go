@@ -5,7 +5,6 @@ import (
 	"errors"
 	"time"
 	"net/http"
-	"sync"
 
 	api "git.circuitco.de/self/greyhouse/api"
 
@@ -23,7 +22,8 @@ func u32(b []byte) uint32 {
 
 type V4lStreamer struct {
 	device *v4l.Device
-	frame sync.Mutex
+	framesCaught int
+	devicePath string
 	lastFrame []byte
 	lastErr error
 	lastUpload *time.Time
@@ -32,7 +32,7 @@ type V4lStreamer struct {
 }
 
 func NewV4lStreamer() V4lStreamer {
-	return V4lStreamer{nil, sync.Mutex{}, nil, nil, nil, 0, true}
+	return V4lStreamer{nil, 0, "", nil, nil, nil, 0, true}
 }
 
 func (s *V4lStreamer) restarter() {
@@ -53,41 +53,50 @@ func (s *V4lStreamer) Init(config ModuleConfig) error {
 		// Connect to the V4L device.
 		log.Printf("Using first device out of %d", len(devices))
 		deviceInfo := devices[0]
-		device, err := v4l.Open(deviceInfo.Path)
-		s.device = device
+		s.devicePath = deviceInfo.Path
+		err := s.OpenDevice()
 		if err != nil {
-			log.Printf("Err opening device: %+v", err)
 			return err
 		}
-		// Check device config
-		gcf, err := device.GetConfig()
+		err = s.ConfigDevice()
 		if err != nil {
-			log.Printf("Err fetching device config: %+v", err)
 			return err
 		}
-		log.Printf("gcf: %+v", gcf)
-		const yuyv_h264 = 875967048
-			// TODO: make GetConfig empty work
-			cfg, err := device.ListConfigs()
-			if err != nil {
-				log.Printf("Err listing device config: %+v", err)
-				// manually set the device config to what we want
-				err := device.SetConfig(v4l.DeviceConfig{Width: 640, Height: 480, Format: FourCC([]byte{'M','J','P','G'}), FPS: v4l.Frac{15, 1}})
-				if err != nil {
-					log.Printf("Failed to set config: %s", err)
-				}
-		gcf, err := device.GetConfig()
-		log.Printf("gcf: %+v", gcf)
-				err = device.TurnOn(false)
-				s.listenHttp()
-				return err
-			} else {
-				log.Printf("Config available: %+v", cfg)
-			}
+		s.device.TurnOn(false)
+		s.device.TurnOff()
+		s.listenHttp()
+		return err
 	} else {
 		log.Printf("Could not find any devices for streamer.")
 		return errors.New("v4l_no_devices")
 	}
+}
+
+func (s *V4lStreamer) OpenDevice() error {
+	log.Print("Opening video device at path " + s.devicePath)
+	if s.device != nil {
+		s.device.Close()
+	}
+	device, err := v4l.Open(s.devicePath)
+	if err != nil {
+		log.Printf("Err opening device: %+v", err)
+		return err
+	}
+	s.device = device
+	return nil
+}
+
+func (s *V4lStreamer) ConfigDevice() error {
+	// manually set the device config to what we want
+	err := s.device.SetConfig(v4l.DeviceConfig{Width: 640, Height: 480, Format: FourCC([]byte{'M','J','P','G'}), FPS: v4l.Frac{15, 1}})
+	if err != nil {
+		return err
+	}
+	gcf, err := s.device.GetConfig()
+	if err != nil {
+		return err
+	}
+	log.Printf("gcf: %+v", gcf)
 	return nil
 }
 
@@ -107,8 +116,15 @@ func (s *V4lStreamer) listenHttp() {
 }
 
 func (s *V4lStreamer) CaptureFrame() ([]byte, time.Time, error) {
+	s.framesCaught += 1
+	if s.framesCaught % 500 == 0 {
+		s.framesCaught = 0
+		err := s.OpenDevice()
+		if err != nil {
+			return nil, time.Now(), err
+		}
+	}
 	start := time.Now()
-	s.frame.Lock()
 	s.device.TurnOn(true)
 	buffer, err := s.device.Capture()
 	var bufferCopy []byte
@@ -122,7 +138,6 @@ func (s *V4lStreamer) CaptureFrame() ([]byte, time.Time, error) {
 	log.Printf("Capture time %+v", end.Sub(start))
 	log.Printf("Buf %+v", buffer)
 	log.Printf("Err %s", err)
-	s.frame.Unlock()
 	return bufferCopy, start, err
 }
 
@@ -172,9 +187,9 @@ func (s *V4lStreamer) Update() {
 }
 
 func (s *V4lStreamer) SendFrame() {
-	s.device.TurnOff()
-	s.device.TurnOn(true)
+	log.Print("capture...")
 	frame, t, err := s.CaptureFrame()
+	log.Print("captured...")
 	if err != nil {
 		log.Printf("Cannot capture frame %+v", err)
 		return

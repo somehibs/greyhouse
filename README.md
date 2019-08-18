@@ -3,7 +3,8 @@
 like grey matter but for houses.
 
 
-*design*
+## design
+
 apis take node keys
 node keys are issued by a node management api
 auxiliary data might be stored behind a node key
@@ -18,3 +19,8 @@ work on primary node response code that reacts to presence and light api calls
 sensors probably shouldn't publish events more than every few seconds.
 
 the presence api needs to handle guessing unknown visitors.
+
+## requirements
+
+initially i worked with only motion sensors, but there's problems with long periods without moving.
+it's almost required 
