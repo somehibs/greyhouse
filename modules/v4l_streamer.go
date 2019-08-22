@@ -67,7 +67,7 @@ func (s *V4lStreamer) Init(config ModuleConfig) error {
 		if err != nil {
 			return err
 		}
-		err = s.ConfigDevice()
+		err = s.ConfigDevice(config)
 		if err != nil {
 			return err
 		}
@@ -95,9 +95,18 @@ func (s *V4lStreamer) OpenDevice() error {
 	return nil
 }
 
-func (s *V4lStreamer) ConfigDevice() error {
+func (s *V4lStreamer) ConfigDevice(config ModuleConfig) error {
+	// fetch all controls and see if any match module config arguments
+	controlInfo, err := s.device.ListControls()
+	for _, control := range controlInfo {
+		if config.Args[control.Name] != nil {
+			configValue := (config.Args[control.Name]).(float64)
+			s.device.SetControl(control.CID, int32(configValue))
+		}
+	}
+
 	// manually set the device config to what we want
-	err := s.device.SetConfig(v4l.DeviceConfig{Width: 640, Height: 480, Format: FourCC([]byte{'M','J','P','G'}), FPS: v4l.Frac{15, 1}})
+	err = s.device.SetConfig(v4l.DeviceConfig{Width: 640, Height: 480, Format: FourCC([]byte{'M','J','P','G'}), FPS: v4l.Frac{15, 1}})
 	if err != nil {
 		return err
 	}

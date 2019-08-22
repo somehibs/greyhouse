@@ -12,10 +12,11 @@ type ComputerVision struct {
 	video *V4lStreamer
 	frameChannel chan []byte
 	lastHash *hash.ExtImageHash
+	lastDiffHash *hash.ImageHash
 }
 
 func NewComputerVision(video *V4lStreamer) ComputerVision {
-	return ComputerVision{video, make(chan []byte), nil}
+	return ComputerVision{video, make(chan []byte), nil, nil}
 }
 
 func (cv *ComputerVision) Init(config ModuleConfig) error {
@@ -30,13 +31,21 @@ func (cv *ComputerVision) HandleFrames() {
 		byteReader := bytes.NewReader(b)
 		img, _ := jpeg.Decode(byteReader)
 		bhash, _ := hash.ExtAverageHash(img, 10, 10)
+		dhash, _ := hash.DifferenceHash(img)
 		if cv.lastHash != nil {
 			d, _ := cv.lastHash.Distance(bhash)
 			if d > 5 {
-				log.Printf("Passed trigger distance with: %d", d)
+				log.Printf("Average passed trigger: %d", d)
+			}
+		}
+		if cv.lastDiffHash != nil {
+			d, _ := cv.lastDiffHash.Distance(dhash)
+			if d > 5 {
+				log.Printf("Difference passed trigger: %d", d)
 			}
 		}
 		cv.lastHash = bhash
+		cv.lastDiffHash = dhash
 	}
 }
 
