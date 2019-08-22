@@ -2,29 +2,42 @@ package modules
 
 import (
 	"log"
+	"bytes"
+	"image/jpeg"
 
-	"gocv.io/x/gocv/contrib"
+	hash "github.com/corona10/goimagehash"
 )
 
 type ComputerVision struct {
-	streamer *V4lStreamer
-	//hashes []contrib.ImgHashBase
+	video *V4lStreamer
+	frameChannel chan []byte
+	lastHash *hash.ExtImageHash
 }
 
 func NewComputerVision(video *V4lStreamer) ComputerVision {
-	return ComputerVision{video}//, make([]contrib.ImgHashBase, 0)}
+	return ComputerVision{video, make(chan []byte), nil}
 }
 
 func (cv *ComputerVision) Init(config ModuleConfig) error {
-	log.Print("Starting CV")
-	contrib.PHash{}
-	hashes = append(hashes, contrib.AverageHash{})
-	hashes = append(hashes, contrib.BlockMeanHash{})
-	hashes = append(hashes, contrib.BlockMeanHash{Mode: contrib.BlockMeanHashMode1})
-	hashes = append(hashes, contrib.ColorMomentHash{})
-	hashes = append(hashes, contrib.NewMarrHildrethHash())
-	hashes = append(hashes, contrib.NewRadialVarianceHash())
+	go cv.HandleFrames()
+	cv.video.NewFrame(cv.frameChannel)
 	return nil
+}
+
+func (cv *ComputerVision) HandleFrames() {
+	for {
+		b := <-cv.frameChannel
+		byteReader := bytes.NewReader(b)
+		img, _ := jpeg.Decode(byteReader)
+		bhash, _ := hash.ExtAverageHash(img, 10, 10)
+		if cv.lastHash != nil {
+			d, _ := cv.lastHash.Distance(bhash)
+			if d > 5 {
+				log.Printf("Passed trigger distance with: %d", d)
+			}
+		}
+		cv.lastHash = bhash
+	}
 }
 
 func (cv *ComputerVision) CanTick() bool {
@@ -32,6 +45,7 @@ func (cv *ComputerVision) CanTick() bool {
 }
 
 func (cv *ComputerVision) Tick() error {
+	// Try to fetch an image
 	return nil
 }
 

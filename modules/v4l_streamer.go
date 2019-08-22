@@ -21,6 +21,7 @@ func u32(b []byte) uint32 {
 }
 
 type V4lStreamer struct {
+	callbacks []chan<- []byte
 	device *v4l.Device
 	framesCaught int
 	devicePath string
@@ -32,7 +33,15 @@ type V4lStreamer struct {
 }
 
 func NewV4lStreamer() V4lStreamer {
-	return V4lStreamer{nil, 0, "", nil, nil, nil, 0, true}
+	return V4lStreamer{make([]chan<- []byte, 0), nil, 0, "", nil, nil, nil, 0, true}
+}
+
+func (s *V4lStreamer) NewFrame(listener chan<- []byte) {
+	s.callbacks = append(s.callbacks, listener)
+}
+
+func (s *V4lStreamer) StopFrame(listener chan<- []byte) {
+	log.Print("StopFrame not supported")
 }
 
 func (s *V4lStreamer) restarter() {
@@ -109,10 +118,15 @@ func (s *V4lStreamer) listenHttp() {
 	server.SetKeepAlivesEnabled(false)
 	http.HandleFunc("/", func (w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
-		log.Printf("Sending frame with size %d", len(s.lastFrame))
 		w.Write(s.lastFrame)
 	})
 	go server.ListenAndServe()
+}
+
+func (s *V4lStreamer) DispatchFrame() {
+	for _, c := range s.callbacks {
+		c <- s.lastFrame
+	}
 }
 
 func (s *V4lStreamer) CaptureFrame() ([]byte, time.Time, error) {
@@ -132,12 +146,15 @@ func (s *V4lStreamer) CaptureFrame() ([]byte, time.Time, error) {
 		bufferCopy = make([]byte, len(buffer.Source()))
 		copy(bufferCopy, buffer.Source())
 		s.lastFrame = bufferCopy
+		go s.DispatchFrame()
+	} else {
+		log.Printf("Could not read frame: %s", err.Error())
 	}
 	s.device.TurnOff()
 	end := time.Now()
-	log.Printf("Capture time %+v", end.Sub(start))
-	log.Printf("Buf %+v", buffer)
-	log.Printf("Err %s", err)
+	if false {
+		log.Printf("Capture time %+v", end.Sub(start))
+	}
 	return bufferCopy, start, err
 }
 
@@ -173,7 +190,9 @@ func (s *V4lStreamer) writeUpdate(t time.Time, img []byte) {
 		s.Throttle = reply.Throttle
 	}
 	end := time.Now()
-	log.Printf("Uploading took %s", end.Sub(start))
+	if false {
+		log.Printf("Uploading took %s", end.Sub(start))
+	}
 }
 
 func (s *V4lStreamer) Update() {
@@ -187,9 +206,7 @@ func (s *V4lStreamer) Update() {
 }
 
 func (s *V4lStreamer) SendFrame() {
-	log.Print("capture...")
 	frame, t, err := s.CaptureFrame()
-	log.Print("captured...")
 	if err != nil {
 		log.Printf("Cannot capture frame %+v", err)
 		return
