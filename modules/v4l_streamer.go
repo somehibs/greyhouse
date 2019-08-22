@@ -99,20 +99,8 @@ func (s *V4lStreamer) OpenDevice() error {
 }
 
 func (s *V4lStreamer) ConfigDevice(config ModuleConfig) error {
-	// fetch all controls and see if any match module config arguments
-	controlInfo, err := s.device.ListControls()
-	for _, control := range controlInfo {
-		if config.Args[control.Name] != nil {
-			configValue := (config.Args[control.Name]).(float64)
-			log.Printf("control %s is being set to %d", control.Name, configValue)
-			s.device.SetControl(control.CID, int32(configValue))
-		} else if config.Args["Debug"] != nil {
-			log.Printf("Config key %s ignored", control.Name)
-		}
-	}
-
 	// manually set the device config to what we want
-	err = s.device.SetConfig(v4l.DeviceConfig{Width: 640, Height: 480, Format: FourCC([]byte{'M','J','P','G'}), FPS: v4l.Frac{15, 1}})
+	err := s.device.SetConfig(v4l.DeviceConfig{Width: 640, Height: 480, Format: FourCC([]byte{'M','J','P','G'}), FPS: v4l.Frac{2, 1}})
 	if err != nil {
 		return err
 	}
@@ -120,7 +108,25 @@ func (s *V4lStreamer) ConfigDevice(config ModuleConfig) error {
 	if err != nil {
 		return err
 	}
+
 	log.Printf("gcf: %+v", gcf)
+	// fetch all controls and see if any match module config arguments
+	controlInfo, err := s.device.ListControls()
+	for _, control := range controlInfo {
+		if config.Args[control.Name] != nil {
+			configValue := (config.Args[control.Name]).(float64)
+			log.Printf("control %s is being set to %d", control.Name, configValue)
+			if control.Name == "White Balance, Auto & Preset" {
+				s.device.SetControl(control.CID, 1)
+			} else if control.Name == "Auto Exposure" {
+				s.device.SetControl(control.CID, 0)
+			}
+			s.device.SetControl(control.CID, int32(configValue))
+		} else if config.Args["Debug"] != nil {
+			log.Printf("Config key %s ignored", control.Name)
+		}
+	}
+
 	return nil
 }
 
