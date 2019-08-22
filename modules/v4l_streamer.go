@@ -8,7 +8,7 @@ import (
 
 	api "git.circuitco.de/self/greyhouse/api"
 
-	"github.com/korandiz/v4l"
+	"git.circuitco.de/self/v4l"
 )
 
 func FourCC(cc []byte) uint32 {
@@ -44,11 +44,13 @@ func (s *V4lStreamer) StopFrame(listener chan<- []byte) {
 	log.Print("StopFrame not supported")
 }
 
-func (s *V4lStreamer) restarter() {
+func (s *V4lStreamer) Framer() {
 	for {
-		time.Sleep(1*time.Second)
-		s.device.TurnOff()
-		s.device.TurnOn(true)
+		time.Sleep(250*time.Millisecond)
+		_, _, err := s.CaptureFrame()
+		if err != nil {
+			log.Printf("Error capturing frame: %s", err.Error())
+		}
 	}
 }
 
@@ -71,9 +73,10 @@ func (s *V4lStreamer) Init(config ModuleConfig) error {
 		if err != nil {
 			return err
 		}
-		s.device.TurnOn(false)
+		s.device.TurnOn(true)
 		s.device.TurnOff()
 		s.listenHttp()
+		go s.Framer()
 		return err
 	} else {
 		log.Printf("Could not find any devices for streamer.")
@@ -101,7 +104,10 @@ func (s *V4lStreamer) ConfigDevice(config ModuleConfig) error {
 	for _, control := range controlInfo {
 		if config.Args[control.Name] != nil {
 			configValue := (config.Args[control.Name]).(float64)
+			log.Printf("control %s is being set to %d", control.Name, configValue)
 			s.device.SetControl(control.CID, int32(configValue))
+		} else if config.Args["Debug"] != nil {
+			log.Printf("Config key %s ignored", control.Name)
 		}
 	}
 
@@ -215,12 +221,7 @@ func (s *V4lStreamer) Update() {
 }
 
 func (s *V4lStreamer) SendFrame() {
-	frame, t, err := s.CaptureFrame()
-	if err != nil {
-		log.Printf("Cannot capture frame %+v", err)
-		return
-	}
-	s.writeUpdate(t, frame)
+	s.writeUpdate(time.Now(), s.lastFrame)
 }
 
 func (s *V4lStreamer) clearError() {

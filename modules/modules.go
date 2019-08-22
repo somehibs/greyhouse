@@ -27,7 +27,7 @@ var chost *ClientHost
 func LoadModules(moduleConfig []ModuleConfig) ([]GreyhouseClientModule, error) {
 	log.Print("Loading %d modules from config...", len(moduleConfig))
 	loaded := make([]GreyhouseClientModule, 0)
-	var video V4lStreamer
+	var video *V4lStreamer
 	var err error
 	for _, config := range moduleConfig {
 		var module GreyhouseClientModule
@@ -36,10 +36,11 @@ func LoadModules(moduleConfig []ModuleConfig) ([]GreyhouseClientModule, error) {
 			gpio := NewGpioWatcher()
 			module = &gpio
 		case "video":
-			video = NewV4lStreamer()
-			module = &video
+			v := NewV4lStreamer()
+			video = &v
+			module = video
 		case "cv":
-			cv := NewComputerVision(&video)
+			cv := NewComputerVision(video)
 			module = &cv
 		default:
 			log.Panicf("Module name not recognised: %s", config.Name)
