@@ -99,7 +99,7 @@ func registered(clientHost modules.ClientHost) {
 		for _, module := range tickModules {
 			e := module.Tick()
 			if e != nil {
-				log.Print("FATAL Could not tick module: %+v due to %+v", module, e)
+				log.Printf("FATAL Could not tick module due to %s", e.Error())
 			}
 		}
 		time.Sleep(1*time.Second)
@@ -108,7 +108,7 @@ func registered(clientHost modules.ClientHost) {
 			for _, module := range loadedModules {
 				e := module.Tick()
 				if e != nil {
-					log.Printf("all modules tick found %s in %+v", e.Error(), module)
+					log.Printf("all modules tick found %s in module", e.Error())
 					return
 				}
 			}

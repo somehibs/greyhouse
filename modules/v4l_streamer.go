@@ -167,7 +167,7 @@ func (s *V4lStreamer) CaptureFrame() ([]byte, time.Time, error) {
 		bufferCopy = make([]byte, len(buffer.Source()))
 		copy(bufferCopy, buffer.Source())
 		s.lastFrame = bufferCopy
-		go s.DispatchFrame()
+		s.DispatchFrame()
 	} else {
 		log.Printf("Could not read frame: %s", err.Error())
 	}
