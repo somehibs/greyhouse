@@ -28,12 +28,13 @@ type V4lStreamer struct {
 	lastFrame []byte
 	lastErr error
 	lastUpload *time.Time
+	lastExposure int32
 	Throttle int32
 	UploadsEnabled bool
 }
 
 func NewV4lStreamer() V4lStreamer {
-	return V4lStreamer{make([]chan<- []byte, 0), nil, 0, "", nil, nil, nil, 0, true}
+	return V4lStreamer{make([]chan<- []byte, 0), nil, 0, "", nil, nil, nil, 0, 0, true}
 }
 
 func (s *V4lStreamer) NewFrame(listener chan<- []byte) {
@@ -46,7 +47,7 @@ func (s *V4lStreamer) StopFrame(listener chan<- []byte) {
 
 func (s *V4lStreamer) Framer() {
 	for {
-		time.Sleep(250*time.Millisecond)
+		time.Sleep(500*time.Millisecond)
 		_, _, err := s.CaptureFrame()
 		if err != nil {
 			log.Printf("Error capturing frame: %s", err.Error())
@@ -115,7 +116,7 @@ func (s *V4lStreamer) ConfigDevice(config ModuleConfig) error {
 	for _, control := range controlInfo {
 		if config.Args[control.Name] != nil {
 			configValue := (config.Args[control.Name]).(float64)
-			log.Printf("control %s is being set to %d", control.Name, configValue)
+			log.Printf("control %s (cid: %d) is being set to %d", control.Name, control.CID, configValue)
 			if control.Name == "White Balance, Auto & Preset" {
 				s.device.SetControl(control.CID, 1)
 			} else if control.Name == "Auto Exposure" {
@@ -128,6 +129,14 @@ func (s *V4lStreamer) ConfigDevice(config ModuleConfig) error {
 	}
 
 	return nil
+}
+
+func (s *V4lStreamer) SetExposureTime(time int32) {
+	if s.lastExposure == time {
+		return
+	}
+	s.device.SetControl(10094850, time)
+	s.lastExposure = time
 }
 
 func (s *V4lStreamer) listenHttp() {
@@ -237,8 +246,6 @@ func (s *V4lStreamer) clearError() {
 func (s *V4lStreamer) CanTick() bool { return s.UploadsEnabled }
 func (s *V4lStreamer) Tick() error {
 	defer s.clearError()
-	if (s.CanTick()) {
-		s.SendFrame()
-	}
+	s.Update()
 	return s.lastErr
 }

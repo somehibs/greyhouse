@@ -94,7 +94,8 @@ func (ps *PresenceService) recogniseImage(node *node.Node, update *api.ImageUpda
 	found := ps.recognise.RecogniseImage(update.Image)
 	end := time.Now()
 	diff := end.Sub(start)
-	throttle = (int32(float64(diff/time.Millisecond))/1000)+1
+	//throttle = (int32(float64(diff/time.Millisecond))/1000)+1
+	throttle = 5
 	log.Printf("Time: %s Room: %s Found: %+v", diff/time.Millisecond, node.Name, found)
 	for _, match := range found {
 		if match.Class == "person" || match.Class == "cat" {
