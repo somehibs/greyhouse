@@ -138,12 +138,18 @@ func (cv *ComputerVision) HandleFrames() {
 		img, _ := jpeg.Decode(byteReader)
 		dhash, avg, _ := hash.DifferenceHash(img)
 		extra_threshold := 0
-		if avg < 3 {
+		//if avg < 3 {
 			// automatically skip the next 5 frames when nighttime
-			skip = 5
-		} else if avg < 18 {
-			// reduce trigger sensitivity significantly
-			extra_threshold = 7
+			//skip = 5
+		//} else
+		// very low lighting, unreliable
+		if avg < 18 {
+			extra_threshold = 6
+		// prone to some banding
+		} else if avg < 30 {
+			extra_threshold = 2
+		} else if avg < 40 {
+			extra_threshold = 1
 		}
 		if cv.largeExposureAdjust {
 			cv.largeExposureAdjust = false
@@ -152,8 +158,7 @@ func (cv *ComputerVision) HandleFrames() {
 		}
 		if cv.lastDiffHash != nil {
 			d, _ := cv.lastDiffHash.Distance(dhash)
-			base_threshold := 0
-			if d > cv.thresholds+base_threshold+extra_threshold {
+			if d > 1+cv.thresholds+extra_threshold {
 				log.Printf("Difference passed trigger: %d", d)
 			}
 		}
