@@ -135,8 +135,17 @@ func (s *V4lStreamer) SetExposureTime(time int32) {
 	if s.lastExposure == time {
 		return
 	}
+	log.Printf("Setting exposure: %s", time)
 	s.device.SetControl(10094850, time)
 	s.lastExposure = time
+}
+
+func (s *V4lStreamer) GetExposureTime() int32 {
+	if s.lastExposure != 0 {
+		return s.lastExposure
+	}
+	ret, _ := s.device.GetControl(10094850)
+	return ret
 }
 
 func (s *V4lStreamer) listenHttp() {

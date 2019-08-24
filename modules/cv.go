@@ -24,6 +24,8 @@ var (
 type ComputerVision struct {
 	video *V4lStreamer
 	thresholds int
+	lumenThresholdLow float64
+	lumenThresholdHigh float64
 	showHashes bool
 	autoExposure bool
 	frameChannel chan []byte
@@ -32,7 +34,7 @@ type ComputerVision struct {
 }
 
 func NewComputerVision(video *V4lStreamer) ComputerVision {
-	return ComputerVision{video, 0, false, true, make(chan []byte), nil, nil}
+	return ComputerVision{video, 0, 100.0, 140.0, false, true, make(chan []byte), nil, nil}
 }
 
 type NoVideoModuleError struct {
@@ -57,9 +59,39 @@ func (cv *ComputerVision) Init(config ModuleConfig) error {
 		cv.autoExposure = !(config.Args["DisableExposure"]).(bool)
 		log.Print("Showing hashes: %+v", cv.showHashes)
 	}
+	if config.Args["MinLumen"] != nil {
+		cv.lumenThresholdLow = (config.Args["MinLumen"]).(float64)
+	}
+	if config.Args["MaxLumen"] != nil {
+		cv.lumenThresholdHigh = (config.Args["MaxLumen"]).(float64)
+	}
 	go cv.HandleFrames()
 	cv.video.NewFrame(cv.frameChannel)
 	return nil
+}
+
+func (cv *ComputerVision) SetDesiredExposure(exposure int32) {
+	current := cv.video.GetExposureTime()
+	if current < exposure {
+		inc := int32(10)
+		if current < 200 {
+			inc = 2
+		} else if current < 500 {
+			inc = 5
+		}
+		current += inc
+	} else if current > exposure {
+		distance := current - exposure
+		sub := int32(10)
+		if distance > 100 {
+			sub = 30
+		}
+		if current > 5000 {
+			sub = 100
+		}
+		current -= sub
+	}
+	cv.video.SetExposureTime(current)
 }
 
 func (cv *ComputerVision) HandleExposure(dhash *hash.ImageHash, averageLumen float64) bool {
@@ -68,11 +100,16 @@ func (cv *ComputerVision) HandleExposure(dhash *hash.ImageHash, averageLumen flo
 	}
 	// See if we match darkness hash
 	//night_time, _ := dhash.Distance(night_dhash)
-	if averageLumen < 2 {
-		cv.video.SetExposureTime(10000)
-		return true
-	}
 	log.Printf("Lumens: %f", averageLumen)
+	if averageLumen < cv.lumenThresholdLow {
+		cv.SetDesiredExposure(5000)
+		return averageLumen < 3
+	}
+	if averageLumen > cv.lumenThresholdHigh {
+		log.Printf("desired exposure: %f", averageLumen)
+		// will lower by 10 until 0
+		cv.SetDesiredExposure(0)
+	}
 	return false
 }
 
