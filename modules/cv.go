@@ -31,10 +31,11 @@ type ComputerVision struct {
 	frameChannel chan []byte
 	lastFrame []byte
 	lastDiffHash *hash.ImageHash
+	largeExposureAdjust bool
 }
 
 func NewComputerVision(video *V4lStreamer) ComputerVision {
-	return ComputerVision{video, 0, 100.0, 140.0, false, true, make(chan []byte), nil, nil}
+	return ComputerVision{video, 0, 100.0, 140.0, false, true, make(chan []byte), nil, nil, false}
 }
 
 type NoVideoModuleError struct {
@@ -70,14 +71,28 @@ func (cv *ComputerVision) Init(config ModuleConfig) error {
 	return nil
 }
 
-func (cv *ComputerVision) SetDesiredExposure(exposure int32) {
+func (cv *ComputerVision) SetDesiredExposure(exposure int32, adjustNow bool) {
 	current := cv.video.GetExposureTime()
+	if current == exposure {
+		return
+	}
+	if adjustNow {
+		cv.video.SetExposureTime(exposure)
+		cv.largeExposureAdjust = true
+		return
+	}
 	if current < exposure {
+		distance := exposure - current
 		inc := int32(10)
 		if current < 200 {
-			inc = 2
+			inc = 3
 		} else if current < 500 {
 			inc = 5
+		} else if current > 1000 {
+			inc = 25
+		}
+		if inc > distance {
+			inc = distance
 		}
 		current += inc
 	} else if current > exposure {
@@ -94,23 +109,21 @@ func (cv *ComputerVision) SetDesiredExposure(exposure int32) {
 	cv.video.SetExposureTime(current)
 }
 
-func (cv *ComputerVision) HandleExposure(dhash *hash.ImageHash, averageLumen float64) bool {
+func (cv *ComputerVision) HandleExposure(dhash *hash.ImageHash, averageLumen float64) {
 	if cv.autoExposure == false {
-		return false
+		return
 	}
 	// See if we match darkness hash
 	//night_time, _ := dhash.Distance(night_dhash)
 	log.Printf("Lumens: %f", averageLumen)
 	if averageLumen < cv.lumenThresholdLow {
-		cv.SetDesiredExposure(5000)
-		return averageLumen < 3
+		cv.SetDesiredExposure(6000, averageLumen<cv.lumenThresholdLow-20)
 	}
 	if averageLumen > cv.lumenThresholdHigh {
 		log.Printf("desired exposure: %f", averageLumen)
 		// will lower by 10 until 0
-		cv.SetDesiredExposure(0)
+		cv.SetDesiredExposure(0, false)
 	}
-	return false
 }
 
 func (cv *ComputerVision) HandleFrames() {
@@ -124,20 +137,30 @@ func (cv *ComputerVision) HandleFrames() {
 		byteReader := bytes.NewReader(b)
 		img, _ := jpeg.Decode(byteReader)
 		dhash, avg, _ := hash.DifferenceHash(img)
+		extra_threshold := 0
+		if avg < 3 {
+			// automatically skip the next 5 frames when nighttime
+			skip = 5
+		} else if avg < 18 {
+			// reduce trigger sensitivity significantly
+			extra_threshold = 7
+		}
+		if cv.largeExposureAdjust {
+			cv.largeExposureAdjust = false
+			extra_threshold = 100
+			log.Printf("SUPPRESS TRIGGER")
+		}
 		if cv.lastDiffHash != nil {
 			d, _ := cv.lastDiffHash.Distance(dhash)
-			if d > cv.thresholds+3 {
+			base_threshold := 0
+			if d > cv.thresholds+base_threshold+extra_threshold {
 				log.Printf("Difference passed trigger: %d", d)
 			}
 		}
 		if cv.showHashes {
 			log.Printf("Hash type: %s (%d) hash: %d", dhash.GetKind(), dhash.GetKind(), dhash.GetHash())
 		}
-		night := cv.HandleExposure(dhash, avg)
-		if night {
-			// automatically skip the next 5 frames when nighttime
-			skip = 5
-		}
+		cv.HandleExposure(dhash, avg)
 		cv.lastFrame = b
 		cv.lastDiffHash = dhash
 	}
