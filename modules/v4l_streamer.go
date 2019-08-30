@@ -34,7 +34,7 @@ type V4lStreamer struct {
 }
 
 func NewV4lStreamer() V4lStreamer {
-	return V4lStreamer{make([]chan<- []byte, 0), nil, 0, "", nil, nil, nil, 0, 0, true}
+	return V4lStreamer{make([]chan<- []byte, 0), nil, 0, "", nil, nil, nil, 0, 0, false}
 }
 
 func (s *V4lStreamer) NewFrame(listener chan<- []byte) {
@@ -86,9 +86,10 @@ func (s *V4lStreamer) Init(config ModuleConfig) error {
 }
 
 func (s *V4lStreamer) OpenDevice() error {
-	log.Print("Opening video device at path " + s.devicePath)
 	if s.device != nil {
 		s.device.Close()
+	} else {
+		log.Printf("Opening video device at path %s", s.devicePath)
 	}
 	device, err := v4l.Open(s.devicePath)
 	if err != nil {
@@ -116,7 +117,9 @@ func (s *V4lStreamer) ConfigDevice(config ModuleConfig) error {
 	for _, control := range controlInfo {
 		if config.Args[control.Name] != nil {
 			configValue := (config.Args[control.Name]).(float64)
-			log.Printf("control %s (cid: %d) is being set to %d", control.Name, control.CID, configValue)
+			if false {
+				log.Printf("control %s (cid: %d) is being set to %d", control.Name, control.CID, configValue)
+			}
 			if control.Name == "White Balance, Auto & Preset" {
 				s.device.SetControl(control.CID, 1)
 			} else if control.Name == "Auto Exposure" {
@@ -135,7 +138,7 @@ func (s *V4lStreamer) SetExposureTime(time int32) {
 	if s.lastExposure == time {
 		return
 	}
-	log.Printf("Setting exposure: %s", time)
+	//log.Printf("Setting exposure: %s", time)
 	s.device.SetControl(10094850, time)
 	s.lastExposure = time
 }

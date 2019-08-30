@@ -8,15 +8,6 @@ import (
 	hash "github.com/corona10/goimagehash"
 )
 
-// what sort of things should this module report?
-// well, it's computer vision, so it should tell the system about any motion change
-// it should tell the system the magnitude of motion
-
-// since it's cv, we should look to recognise an empty room
-// if possible, we will try obtaining an outline of the empty room
-// we can obtain an outline of the room's default state
-// then we can run difference hashes on future outlines to see if there's a significant change in outline
-
 var (
 	night_dhash = hash.NewImageHash(72340172838076673, hash.DHash)
 )
@@ -35,7 +26,17 @@ type ComputerVision struct {
 }
 
 func NewComputerVision(video *V4lStreamer) ComputerVision {
-	return ComputerVision{video, 0, 100.0, 140.0, false, true, make(chan []byte), nil, nil, false}
+	return ComputerVision{video,
+		0,
+		100.0,
+		140.0,
+		false,
+		true,
+		make(chan []byte),
+		nil,
+		nil,
+		false,
+	}
 }
 
 type NoVideoModuleError struct {
@@ -54,11 +55,11 @@ func (cv *ComputerVision) Init(config ModuleConfig) error {
 	}
 	if config.Args["ShowHashes"] != nil {
 		cv.showHashes = (config.Args["ShowHashes"]).(bool)
-		log.Print("Showing hashes: %+v", cv.showHashes)
+		log.Printf("Showing hashes: %+v", cv.showHashes)
 	}
 	if config.Args["DisableExposure"] != nil {
 		cv.autoExposure = !(config.Args["DisableExposure"]).(bool)
-		log.Print("Showing hashes: %+v", cv.showHashes)
+		log.Printf("Setting auto-exposure: %+v", cv.autoExposure)
 	}
 	if config.Args["MinLumen"] != nil {
 		cv.lumenThresholdLow = (config.Args["MinLumen"]).(float64)
@@ -115,12 +116,10 @@ func (cv *ComputerVision) HandleExposure(dhash *hash.ImageHash, averageLumen flo
 	}
 	// See if we match darkness hash
 	//night_time, _ := dhash.Distance(night_dhash)
-	log.Printf("Lumens: %f", averageLumen)
 	if averageLumen < cv.lumenThresholdLow {
 		cv.SetDesiredExposure(6000, averageLumen<cv.lumenThresholdLow-20)
 	}
 	if averageLumen > cv.lumenThresholdHigh {
-		log.Printf("desired exposure: %f", averageLumen)
 		// will lower by 10 until 0
 		cv.SetDesiredExposure(0, false)
 	}
@@ -136,38 +135,40 @@ func (cv *ComputerVision) HandleFrames() {
 		}
 		byteReader := bytes.NewReader(b)
 		img, _ := jpeg.Decode(byteReader)
-		dhash, avg, _ := hash.DifferenceHash(img)
-		extra_threshold := 0
+		diffHash, avg, _ := hash.DifferenceHash(img)
+		extraThreshold := 0
 		//if avg < 3 {
 			// automatically skip the next 5 frames when nighttime
 			//skip = 5
 		//} else
 		// very low lighting, unreliable
-		if avg < 18 {
-			extra_threshold = 6
+		if avg < 10 {
+			extraThreshold = 5
+		} else if avg < 15 {
+			extraThreshold = 3
 		// prone to some banding
 		} else if avg < 30 {
-			extra_threshold = 2
+			extraThreshold = 2
 		} else if avg < 40 {
-			extra_threshold = 1
+			extraThreshold = 1
 		}
 		if cv.largeExposureAdjust {
 			cv.largeExposureAdjust = false
-			extra_threshold = 100
+			extraThreshold = 100
 			log.Printf("SUPPRESS TRIGGER")
 		}
 		if cv.lastDiffHash != nil {
-			d, _ := cv.lastDiffHash.Distance(dhash)
-			if d > 1+cv.thresholds+extra_threshold {
-				log.Printf("Difference passed trigger: %d", d)
+			d, _ := cv.lastDiffHash.Distance(diffHash)
+			if d > 1+cv.thresholds+extraThreshold {
+				log.Printf("TRIGGER %d LUMEN %f", d, avg)
 			}
 		}
 		if cv.showHashes {
-			log.Printf("Hash type: %s (%d) hash: %d", dhash.GetKind(), dhash.GetKind(), dhash.GetHash())
+			log.Printf("Hash type: %s (%d) hash: %d", diffHash.GetKind(), diffHash.GetKind(), diffHash.GetHash())
 		}
-		cv.HandleExposure(dhash, avg)
+		cv.HandleExposure(diffHash, avg)
 		cv.lastFrame = b
-		cv.lastDiffHash = dhash
+		cv.lastDiffHash = diffHash
 	}
 }
 

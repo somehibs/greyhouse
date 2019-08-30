@@ -1,14 +1,14 @@
 package main
 
 import (
-	"log"
-	"time"
-	"os"
+	"encoding/json"
 	"errors"
+	"io/ioutil"
+	"log"
+	"os"
 	"os/signal"
 	"syscall"
-	"encoding/json"
-	"io/ioutil"
+	"time"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -39,7 +39,7 @@ func loadClientConfig() (ClientConfig, error) {
 	}
 	err = json.Unmarshal(read, &clientConfig)
 	if clientConfig.Room == 0 {
-		return clientConfig, errors.New("Room not correctly set.")
+		return clientConfig, errors.New("room not correctly set")
 	}
 	return clientConfig, err
 

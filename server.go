@@ -2,17 +2,17 @@ package main
 
 import (
 	"log"
+	"math/rand"
 	"net"
 	"time"
-	"math/rand"
 
 	"google.golang.org/grpc"
 
 	api "git.circuitco.de/self/greyhouse/api"
 	// this was a mistake, should have single-packaged everything that would have fit in one package
 	// TODO: repackage node, house, presence and web as greyhouse
-	"git.circuitco.de/self/greyhouse/node"
 	"git.circuitco.de/self/greyhouse/house"
+	"git.circuitco.de/self/greyhouse/node"
 	"git.circuitco.de/self/greyhouse/presence"
 	"git.circuitco.de/self/greyhouse/web"
 
@@ -59,6 +59,6 @@ func main() {
 	houseService.StartTicking()
 
 	log.Print("Services listening now.")
-	server.Serve(listen)
-	log.Fatal("Service is going down...")
+
+	log.Fatalf("Service is going down... (e: %s)", server.Serve(listen))
 }
