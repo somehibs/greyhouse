@@ -21,38 +21,20 @@ func u32(b []byte) uint32 {
 }
 
 type V4lStreamer struct {
-	callbacks []chan<- []byte
-	device *v4l.Device
-	framesCaught int
-	devicePath string
-	lastFrame []byte
-	lastErr error
-	lastUpload *time.Time
-	lastExposure int32
-	Throttle int32
-	UploadsEnabled bool
+	callbacks         []chan<- []byte
+	device            *v4l.Device
+	framesCaught      int
+	devicePath        string
+	lastFrame         []byte
+	lastErr           error
+	lastExposure      int32
+	ApiUploadThrottle int32
+	UploadsEnabled    bool
+	deepSleep         bool
 }
 
 func NewV4lStreamer() V4lStreamer {
-	return V4lStreamer{make([]chan<- []byte, 0), nil, 0, "", nil, nil, nil, 0, 0, false}
-}
-
-func (s *V4lStreamer) NewFrame(listener chan<- []byte) {
-	s.callbacks = append(s.callbacks, listener)
-}
-
-func (s *V4lStreamer) StopFrame(listener chan<- []byte) {
-	log.Print("StopFrame not supported")
-}
-
-func (s *V4lStreamer) Framer() {
-	for {
-		time.Sleep(500*time.Millisecond)
-		_, _, err := s.CaptureFrame()
-		if err != nil {
-			log.Printf("Error capturing frame: %s", err.Error())
-		}
-	}
+	return V4lStreamer{callbacks: make([]chan<- []byte, 0)}
 }
 
 func (s *V4lStreamer) Init(config ModuleConfig) error {
@@ -82,6 +64,29 @@ func (s *V4lStreamer) Init(config ModuleConfig) error {
 	} else {
 		log.Printf("Could not find any devices for streamer.")
 		return errors.New("v4l_no_devices")
+	}
+}
+
+func (s *V4lStreamer) NewFrame(listener chan<- []byte) {
+	s.callbacks = append(s.callbacks, listener)
+}
+
+func (s *V4lStreamer) StopFrame(listener chan<- []byte) {
+	log.Print("StopFrame not supported")
+}
+
+func (s *V4lStreamer) Framer() {
+	for {
+		if s.deepSleep {
+			time.Sleep(1*time.Minute)
+			s.deepSleep = false
+		} else {
+			time.Sleep(500 * time.Millisecond)
+		}
+		_, _, err := s.CaptureFrame()
+		if err != nil {
+			log.Printf("Error capturing frame: %s", err.Error())
+		}
 	}
 }
 
@@ -229,7 +234,7 @@ func (s *V4lStreamer) writeUpdate(t time.Time, img []byte) {
 	s.lastErr = err
 	if err == nil && reply.Throttle != 0 {
 		// Throttled for n seconds
-		s.Throttle = reply.Throttle
+		s.ApiUploadThrottle = reply.Throttle
 	}
 	end := time.Now()
 	if false {
@@ -238,11 +243,11 @@ func (s *V4lStreamer) writeUpdate(t time.Time, img []byte) {
 }
 
 func (s *V4lStreamer) Update() {
-	if s.Throttle != 0 {
-		s.Throttle -= 1
+	if s.ApiUploadThrottle != 0 {
+		s.ApiUploadThrottle -= 1
 		return
 	}
-	if (s.CanTick()) {
+	if s.CanTick() {
 		s.SendFrame()
 	}
 }
@@ -260,4 +265,8 @@ func (s *V4lStreamer) Tick() error {
 	defer s.clearError()
 	s.Update()
 	return s.lastErr
+}
+
+func (s *V4lStreamer) DeepSleep() {
+	s.deepSleep = true
 }
