@@ -187,6 +187,11 @@ func (s *V4lStreamer) CaptureFrame() ([]byte, time.Time, error) {
 	}
 	start := time.Now()
 	s.device.TurnOn(true)
+	go func() {
+		// Capture timeout thread
+		time.Sleep(10*time.Second)
+		log.Print("Fatal error: frame capture timeout")
+	}()
 	buffer, err := s.device.Capture()
 	var bufferCopy []byte
 	if err == nil {

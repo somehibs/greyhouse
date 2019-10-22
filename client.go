@@ -3,10 +3,12 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -14,9 +16,9 @@ import (
 	"google.golang.org/grpc"
 
 	api "git.circuitco.de/self/greyhouse/api"
-	"git.circuitco.de/self/greyhouse/version"
-
 	"git.circuitco.de/self/greyhouse/modules"
+	"git.circuitco.de/self/greyhouse/version"
+	"git.circuitco.de/self/bcast"
 )
 
 type ClientConfig struct {
@@ -76,13 +78,15 @@ func shutdownSignal() {
 	// trap signals
 	log.Print("trapping shutdown to allow for module shutdown...")
 	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(signals, syscall.SIGINT)
 	go func() {
 		<-signals
+		log.Printf("Handled signal, shutting down %d modules", len(loadedModules))
 		for _, module := range loadedModules {
 			module.Shutdown()
 		}
-		panic("Interrupted.")
+		log.Print("Shutdown()")
+		panic("Done.")
 	}()
 }
 
@@ -128,7 +132,53 @@ func getClients(conn *grpc.ClientConn, nodeClient *api.PrimaryNodeClient, nodeKe
 	return ch
 }
 
+func killService() {
+	log.Print("Killing and waiting for termination")
+	log.Printf("Args: %+v", os.Args)
+	f, err := os.Open("greyclient.pid")
+	if err != nil {
+		log.Printf("Could not open pid file: %s", err)
+		return
+	}
+	r, err := ioutil.ReadAll(f)
+	if err != nil {
+		log.Printf("Could not read file: %s", err)
+		return
+	}
+	pid, err := strconv.Atoi(string(r))
+	if err != nil {
+		log.Printf("Could not read int from str: %s", err)
+		return
+	}
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		log.Printf("Could not find proc: %s", err)
+		return
+	}
+	err = proc.Signal(syscall.SIGINT)
+	if err != nil {
+		log.Printf("Could not interrupt process: %s", err)
+	}
+	log.Printf("Waiting for process")
+	i, err := proc.Wait()
+	if err != nil {
+		timeout := 3*time.Second
+		log.Printf("Could not wait process: %s (waiting %s for safety)", err, timeout)
+		time.Sleep(timeout)
+	}
+	log.Printf("Waited for process, resp %+v", i)
+}
+
 func main() {
+	if len(os.Args) > 1 {
+		killService()
+		return
+	}
+	f, err := os.Create("greyclient.pid")
+	if err == nil {
+		defer f.Close()
+		f.Write([]byte(fmt.Sprintf("%d", os.Getpid())))
+	}
 	log.Print("started")
 	log.Print("loading config...")
 	config, err := loadClientConfig()
@@ -139,6 +189,13 @@ func main() {
 	if err != nil {
 		log.Panicf("Failed to load a module and ending safely now %+v", err)
 		return
+	}
+	if config.Server == "" {
+		_, err := bcast.Discover("greyhouse", 5555)
+		if err != nil {
+			log.Panicf("Could not find server config in file. Could not discover server via broadcast.")
+			return
+		}
 	}
 
 	for ;; {

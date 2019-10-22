@@ -126,7 +126,7 @@ func (ps *PresenceService) Update(ctx context.Context, update *api.PresenceUpdat
 		case api.PresenceType_Motion:
 			ps.motionPresence[unode.Room] = append(ps.motionPresence[unode.Room], event)
 			log.Printf("Motions recorded: %+v", len(ps.motionPresence))
-			reply.Throttle = 15
+			reply.Throttle = -1
 	}
 	return reply, nil
 }

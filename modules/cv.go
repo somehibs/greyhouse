@@ -110,7 +110,7 @@ func (cv *ComputerVision) HandleExposure(averageLumen float64) {
 		cv.SetDesiredExposure(6000, averageLumen<cv.lumenThresholdLow-25)
 	}
 	if averageLumen > cv.lumenThresholdHigh {
-		cv.SetDesiredExposure(0, averageLumen>cv.lumenThresholdHigh-25)
+		cv.SetDesiredExposure(0, false)
 	}
 }
 
@@ -139,7 +139,12 @@ func (cv *ComputerVision) HandleFrames() {
 		// Allow exposure changes based on lumens
 		cv.HandleExposure(averageLumens)
 
-		if averageLumens < cv.deathThreshold {
+		lightingThreshold := cv.getLightingThreshold(averageLumens)
+		if cv.largeExposureAdjust {
+			cv.largeExposureAdjust = false
+			log.Printf("SUPPRESS TRIGGER")
+			lightingThreshold = 100
+		} else if averageLumens < cv.deathThreshold {
 			if !debug {
 				log.Printf("About to enter deep sleep...")
 				debug = true
@@ -150,13 +155,6 @@ func (cv *ComputerVision) HandleFrames() {
 		} else if debug {
 			debug = false
 			log.Printf("Waking up...")
-		}
-
-		lightingThreshold := cv.getLightingThreshold(averageLumens)
-		if cv.largeExposureAdjust {
-			cv.largeExposureAdjust = false
-			log.Printf("SUPPRESS TRIGGER")
-			lightingThreshold = 100
 		}
 
 		if cv.lastDiffHash != nil {
@@ -194,6 +192,8 @@ func (cv *ComputerVision) getLightingThreshold(averageLumens float64) int {
 	case averageLumens < 30:
 		return 2
 	case averageLumens < 40:
+		return 1
+	case averageLumens > 120:
 		return 1
 	default:
 		return 0
